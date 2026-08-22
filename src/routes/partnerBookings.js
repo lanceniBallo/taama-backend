@@ -1,5 +1,5 @@
 const express = require("express");
-const pool = require("../db"); // ⚠️ adapte ce chemin si besoin
+const pool = require("../db");
 const requirePartner = require("../middleware/requirePartner");
 
 const router = express.Router();
@@ -24,17 +24,16 @@ router.get("/bookings", requirePartner, async (req, res) => {
 
 // PATCH /partner/bookings/:id/confirm
 router.patch("/bookings/:id/confirm", requirePartner, (req, res) =>
-  updateBookingStatus(req, res, "confirmed")
+  updateBookingStatus(req, res, "Confirmé")
 );
 
 // PATCH /partner/bookings/:id/reject
 router.patch("/bookings/:id/reject", requirePartner, (req, res) =>
-  updateBookingStatus(req, res, "rejected")
+  updateBookingStatus(req, res, "Rejeté")
 );
 
 async function updateBookingStatus(req, res, status) {
   try {
-    // Vérifie que la réservation appartient bien à une offre de ce partenaire
     const check = await pool.query(
       `SELECT b.id FROM bookings b
        JOIN listings l ON l.id = b.listing_id
