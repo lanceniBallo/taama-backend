@@ -23,7 +23,16 @@ router.get("/:id", async (req, res) => {
 
 // POST /listings -> créer une offre (usage admin/partenaire, à protéger par auth admin)
 router.post("/", async (req, res) => {
-  const { partner_id, type, title, subtitle, description, price_fcfa, icon, accent_color, image_url, metadata } = req.body;
+  let { partner_id, type, title, subtitle, description, price_fcfa, icon, accent_color, image_url, metadata } = req.body;
+
+  // Si aucun partner_id fourni, on le retrouve automatiquement par le nom du titre
+  if (!partner_id && title) {
+    const { rows: matched } = await pool.query(
+      "SELECT id FROM partners WHERE LOWER(name) = LOWER($1) AND is_active = TRUE LIMIT 1",
+      [title]
+    );
+    if (matched[0]) partner_id = matched[0].id;
+  }
 
   const { rows } = await pool.query(
     `INSERT INTO listings (partner_id, type, title, subtitle, description, price_fcfa, icon, accent_color, image_url, metadata)
