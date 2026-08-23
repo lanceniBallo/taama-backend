@@ -25,13 +25,32 @@ router.get("/:id", async (req, res) => {
 router.post("/", async (req, res) => {
   let { partner_id, type, title, subtitle, description, price_fcfa, icon, accent_color, image_url, metadata } = req.body;
 
-  // Si aucun partner_id fourni, on le retrouve automatiquement par le nom du titre
+  // Si aucun partner_id fourni, on tente d'abord une correspondance par nom
   if (!partner_id && title) {
     const { rows: matched } = await pool.query(
       "SELECT id FROM partners WHERE LOWER(name) = LOWER($1) AND is_active = TRUE LIMIT 1",
       [title]
     );
     if (matched[0]) partner_id = matched[0].id;
+  }
+
+  // Si toujours rien trouvé, on retombe sur une correspondance par type
+  if (!partner_id && type) {
+    const typeMap = {
+      car_rental: "vehicle",
+      flight: "airline",
+      bus: "ticket",
+      hotel: "hotel",
+      insurance: "insurance",
+      vehicle: "vehicle",
+      ticket: "ticket",
+    };
+    const partnerType = typeMap[type] || type;
+    const { rows: matchedByType } = await pool.query(
+      "SELECT id FROM partners WHERE type = $1 AND is_active = TRUE LIMIT 1",
+      [partnerType]
+    );
+    if (matchedByType[0]) partner_id = matchedByType[0].id;
   }
 
   const { rows } = await pool.query(
