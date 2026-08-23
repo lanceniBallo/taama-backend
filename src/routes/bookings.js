@@ -31,7 +31,11 @@ router.get("/", requireAuth, async (req, res) => {
 
 // POST /bookings -> créer une réservation pour une offre
 router.post("/", requireAuth, async (req, res) => {
-  const { listing_id, payment_method } = req.body;
+  const {
+    listing_id, payment_method,
+    passenger_name, passenger_document,
+    contact_phone, contact_email, options,
+  } = req.body;
 
   const { rows: listingRows } = await pool.query("SELECT * FROM listings WHERE id = $1", [listing_id]);
   const listing = listingRows[0];
@@ -42,9 +46,9 @@ router.post("/", requireAuth, async (req, res) => {
   // Pour le MVP : statut "En attente" tant que le paiement Mobile Money
   // n'est pas confirmé par le fournisseur (webhook à brancher plus tard).
   const { rows } = await pool.query(
-    `INSERT INTO bookings (reference, user_id, listing_id, status, price_fcfa, payment_method)
-     VALUES ($1,$2,$3,'En attente',$4,$5) RETURNING *`,
-    [reference, req.user.userId, listing_id, listing.price_fcfa, payment_method || "manuel"]
+    `INSERT INTO bookings (reference, user_id, listing_id, status, price_fcfa, payment_method, passenger_name, passenger_document, contact_phone, contact_email, options)
+     VALUES ($1,$2,$3,'En attente',$4,$5,$6,$7,$8,$9,$10) RETURNING *`,
+    [reference, req.user.userId, listing_id, listing.price_fcfa, payment_method || "manuel", passenger_name || null, passenger_document || null, contact_phone || null, contact_email || null, options || {}]
   );
 
   res.status(201).json(rows[0]);
