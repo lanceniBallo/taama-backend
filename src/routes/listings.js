@@ -41,6 +41,7 @@ router.post("/", async (req, res) => {
       flight: "airline",
       bus: "ticket",
       hotel: "hotel",
+      apartment: "real_estate",
       insurance: "insurance",
       vehicle: "vehicle",
       ticket: "ticket",
