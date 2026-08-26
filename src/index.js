@@ -8,9 +8,11 @@ const listingsRoutes = require("./routes/listings");
 const bookingsRoutes = require("./routes/bookings");
 const partnerAuthRoutes = require("./routes/partnerAuth");
 const partnerBookingsRoutes = require("./routes/partnerBookings");
+const partnerWithdrawalsRoutes = require("./routes/partnerWithdrawals");
 const adminPartnersRoutes = require("./routes/adminPartners");
 const adminBookingsRoutes = require("./routes/adminBookings");
 const adminSettingsRoutes = require("./routes/adminSettings");
+const adminFinancesRoutes = require("./routes/adminFinances");
 
 const app = express();
 
@@ -26,11 +28,13 @@ app.use("/bookings", bookingsRoutes);
 // Routes partenaires
 app.use("/auth", partnerAuthRoutes);
 app.use("/partner", partnerBookingsRoutes);
+app.use("/partner", partnerWithdrawalsRoutes);
 
 // Routes administration
 app.use("/admin", adminPartnersRoutes);
 app.use("/admin", adminBookingsRoutes);
 app.use("/admin", adminSettingsRoutes);
+app.use("/admin", adminFinancesRoutes);
 
 // Health check
 app.get("/health", (req, res) => {
