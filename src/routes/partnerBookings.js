@@ -10,7 +10,6 @@ const pool = new Pool({
   },
 });
 
-// Vérification admin
 function adminAuth(req, res, next) {
   const key = req.headers["x-admin-key"];
 
@@ -29,8 +28,6 @@ function adminAuth(req, res, next) {
   next();
 }
 
-// GET /admin/bookings
-// Retourne toutes les réservations Taama
 router.get("/", adminAuth, async (req, res) => {
   try {
     const result = await pool.query(`
