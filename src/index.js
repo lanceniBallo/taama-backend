@@ -9,7 +9,6 @@ const bookingsRoutes = require("./routes/bookings");
 const partnerAuthRoutes = require("./routes/partnerAuth");
 const partnerBookingsRoutes = require("./routes/partnerBookings");
 const adminPartnersRoutes = require("./routes/adminPartners");
-const adminBookingsRoutes = require("./routes/adminBookings");
 
 const app = express();
 
@@ -28,7 +27,6 @@ app.use("/partner", partnerBookingsRoutes);
 
 // Routes administration
 app.use("/admin", adminPartnersRoutes);
-app.use("/admin/bookings", adminBookingsRoutes);
 
 // Health check
 app.get("/health", (req, res) => {
