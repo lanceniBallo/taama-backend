@@ -34,7 +34,7 @@ router.get("/bookings", requireAdmin, async (req, res) => {
         b.options,
 
         u.id AS user_id,
-        u.name AS user_name,
+        u.full_name AS user_name,
         u.email AS user_email,
 
         l.id AS listing_id,
@@ -73,7 +73,7 @@ router.get("/bookings/:id", requireAdmin, async (req, res) => {
     const result = await pool.query(`
       SELECT
         b.*,
-        u.name AS user_name,
+        u.full_name AS user_name,
         u.email AS user_email,
         l.type AS listing_type,
         l.title AS listing_title,
