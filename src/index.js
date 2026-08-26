@@ -1,69 +1,36 @@
+require("dotenv").config();
+
 const express = require("express");
-const { Pool } = require("pg");
+const cors = require("cors");
 
-const router = express.Router();
+const authRoutes = require("./routes/auth");
+const listingsRoutes = require("./routes/listings");
+const bookingsRoutes = require("./routes/bookings");
+const partnerAuthRoutes = require("./routes/partnerAuth");
+const partnerBookingsRoutes = require("./routes/partnerBookings");
+const adminPartnersRoutes = require("./routes/adminPartners");
+const adminBookingsRoutes = require("./routes/adminBookings");
 
-const pool = new Pool({
-  connectionString: process.env.DATABASE_URL,
-  ssl: { rejectUnauthorized: false },
+const app = express();
+
+app.use(cors());
+app.use(express.json());
+
+app.use("/auth", authRoutes);
+app.use("/listings", listingsRoutes);
+app.use("/bookings", bookingsRoutes);
+app.use("/auth", partnerAuthRoutes);
+app.use("/partner", partnerBookingsRoutes);
+
+app.use("/admin", adminPartnersRoutes);
+app.use("/admin", adminBookingsRoutes);
+
+app.get("/health", (req, res) => {
+  res.json({ status: "ok" });
 });
 
-// Vérification administrateur
-router.use((req, res, next) => {
-  const adminKey = req.headers["x-admin-key"];
+const port = process.env.PORT || 4000;
 
-  if (!process.env.ADMIN_KEY || adminKey !== process.env.ADMIN_KEY) {
-    return res.status(401).json({ error: "Clé administrateur invalide." });
-  }
-
-  next();
+app.listen(port, () => {
+  console.log(`Taama API démarrée sur le port ${port}`);
 });
-
-// Toutes les réservations
-router.get("/bookings", async (req, res) => {
-  try {
-    const result = await pool.query(`
-      SELECT
-        b.id,
-        b.reference,
-        b.status,
-        b.price_fcfa,
-        b.payment_method,
-        b.payment_status,
-        b.created_at,
-        b.passenger_name,
-        b.passenger_document,
-        b.contact_phone,
-        b.contact_email,
-        b.options,
-
-        l.id AS listing_id,
-        l.type AS listing_type,
-        l.title AS listing_title,
-        l.subtitle AS listing_subtitle,
-
-        p.id AS partner_id,
-        p.name AS partner_name,
-        p.type AS partner_type
-
-      FROM bookings b
-
-      LEFT JOIN listings l
-        ON l.id = b.listing_id
-
-      LEFT JOIN partners p
-        ON p.id = l.partner_id
-
-      ORDER BY b.created_at DESC
-    `);
-
-    res.json(result.rows);
-  } catch (error) {
-    console.error("Erreur admin bookings:", error);
-    res.status(500).json({
-      error: "Impossible de charger les réservations.",
-    });
-  }
-});
-
-module.exports = router;
