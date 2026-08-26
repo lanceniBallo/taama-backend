@@ -5,22 +5,33 @@ const router = express.Router();
 
 const pool = new Pool({
   connectionString: process.env.DATABASE_URL,
-  ssl: { rejectUnauthorized: false },
+  ssl: {
+    rejectUnauthorized: false,
+  },
 });
 
-// Vérification administrateur
-router.use((req, res, next) => {
-  const adminKey = req.headers["x-admin-key"];
+// Vérification admin
+function adminAuth(req, res, next) {
+  const key = req.headers["x-admin-key"];
 
-  if (!process.env.ADMIN_KEY || adminKey !== process.env.ADMIN_KEY) {
-    return res.status(401).json({ error: "Clé administrateur invalide." });
+  if (!process.env.ADMIN_KEY) {
+    return res.status(500).json({
+      error: "ADMIN_KEY non configurée",
+    });
+  }
+
+  if (!key || key !== process.env.ADMIN_KEY) {
+    return res.status(401).json({
+      error: "Accès administrateur refusé",
+    });
   }
 
   next();
-});
+}
 
-// Toutes les réservations
-router.get("/bookings", async (req, res) => {
+// GET /admin/bookings
+// Retourne toutes les réservations Taama
+router.get("/", adminAuth, async (req, res) => {
   try {
     const result = await pool.query(`
       SELECT
@@ -44,7 +55,8 @@ router.get("/bookings", async (req, res) => {
 
         p.id AS partner_id,
         p.name AS partner_name,
-        p.type AS partner_type
+        p.type AS partner_type,
+        p.city AS partner_city
 
       FROM bookings b
 
@@ -60,8 +72,9 @@ router.get("/bookings", async (req, res) => {
     res.json(result.rows);
   } catch (error) {
     console.error("Erreur admin bookings:", error);
+
     res.status(500).json({
-      error: "Impossible de charger les réservations.",
+      error: "Impossible de récupérer les réservations",
     });
   }
 });
