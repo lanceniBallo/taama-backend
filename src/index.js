@@ -13,22 +13,32 @@ const adminBookingsRoutes = require("./routes/adminBookings");
 
 const app = express();
 
+// Middleware
 app.use(cors());
 app.use(express.json());
 
+// Routes publiques
 app.use("/auth", authRoutes);
 app.use("/listings", listingsRoutes);
 app.use("/bookings", bookingsRoutes);
+
+// Routes partenaires
 app.use("/auth", partnerAuthRoutes);
 app.use("/partner", partnerBookingsRoutes);
 
+// Routes administration
 app.use("/admin", adminPartnersRoutes);
-app.use("/admin", adminBookingsRoutes);
+app.use("/admin/bookings", adminBookingsRoutes);
 
+// Health check
 app.get("/health", (req, res) => {
-  res.json({ status: "ok" });
+  res.json({
+    status: "ok",
+    service: "taama-backend",
+  });
 });
 
+// Serveur
 const port = process.env.PORT || 4000;
 
 app.listen(port, () => {
