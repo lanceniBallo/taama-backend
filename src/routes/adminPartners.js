@@ -53,4 +53,44 @@ router.get("/partners", requireAdmin, async (req, res) => {
   }
 });
 
+// PATCH /admin/partners/:id/toggle-active
+// Active ou désactive un partenaire (ne le supprime pas)
+router.patch("/partners/:id/toggle-active", requireAdmin, async (req, res) => {
+  const { id } = req.params;
+  try {
+    const result = await pool.query(
+      `UPDATE partners SET is_active = NOT is_active
+       WHERE id = $1
+       RETURNING id, name, type, is_active, created_at`,
+      [id]
+    );
+    if (result.rows.length === 0) {
+      return res.status(404).json({ error: "Partenaire introuvable" });
+    }
+    res.json({ partner: result.rows[0] });
+  } catch (err) {
+    console.error("Erreur toggle-active partenaire:", err.message);
+    res.status(500).json({ error: "Erreur serveur" });
+  }
+});
+
+// DELETE /admin/partners/:id
+// Supprime définitivement un partenaire
+router.delete("/partners/:id", requireAdmin, async (req, res) => {
+  const { id } = req.params;
+  try {
+    const result = await pool.query(
+      "DELETE FROM partners WHERE id = $1 RETURNING id",
+      [id]
+    );
+    if (result.rows.length === 0) {
+      return res.status(404).json({ error: "Partenaire introuvable" });
+    }
+    res.json({ success: true });
+  } catch (err) {
+    console.error("Erreur suppression partenaire:", err.message);
+    res.status(500).json({ error: "Erreur serveur" });
+  }
+});
+
 module.exports = router;
