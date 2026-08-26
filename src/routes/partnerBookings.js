@@ -1,58 +1,69 @@
 const express = require("express");
-const pool = require("../db");
-const requirePartner = require("../middleware/requirePartner");
+const { Pool } = require("pg");
 
 const router = express.Router();
 
-// GET /partner/bookings — réservations liées aux offres de ce partenaire
-router.get("/bookings", requirePartner, async (req, res) => {
-  try {
-    const result = await pool.query(
-      `SELECT b.*
-       FROM bookings b
-       JOIN listings l ON l.id = b.listing_id
-       WHERE l.partner_id = $1
-       ORDER BY b.created_at DESC`,
-      [req.partnerId]
-    );
-    res.json(result.rows);
-  } catch (err) {
-    console.error("Erreur GET /partner/bookings:", err.message);
-    res.status(500).json({ error: "Erreur serveur" });
-  }
+const pool = new Pool({
+  connectionString: process.env.DATABASE_URL,
+  ssl: { rejectUnauthorized: false },
 });
 
-// PATCH /partner/bookings/:id/confirm
-router.patch("/bookings/:id/confirm", requirePartner, (req, res) =>
-  updateBookingStatus(req, res, "Confirmé")
-);
+// Vérification administrateur
+router.use((req, res, next) => {
+  const adminKey = req.headers["x-admin-key"];
 
-// PATCH /partner/bookings/:id/reject
-router.patch("/bookings/:id/reject", requirePartner, (req, res) =>
-  updateBookingStatus(req, res, "Rejeté")
-);
-
-async function updateBookingStatus(req, res, status) {
-  try {
-    const check = await pool.query(
-      `SELECT b.id FROM bookings b
-       JOIN listings l ON l.id = b.listing_id
-       WHERE b.id = $1 AND l.partner_id = $2`,
-      [req.params.id, req.partnerId]
-    );
-    if (check.rows.length === 0) {
-      return res.status(404).json({ error: "Réservation introuvable pour ce partenaire" });
-    }
-
-    const result = await pool.query(
-      "UPDATE bookings SET status = $1 WHERE id = $2 RETURNING *",
-      [status, req.params.id]
-    );
-    res.json(result.rows[0]);
-  } catch (err) {
-    console.error("Erreur update booking:", err.message);
-    res.status(500).json({ error: "Erreur serveur" });
+  if (!process.env.ADMIN_KEY || adminKey !== process.env.ADMIN_KEY) {
+    return res.status(401).json({ error: "Clé administrateur invalide." });
   }
-}
+
+  next();
+});
+
+// Toutes les réservations
+router.get("/bookings", async (req, res) => {
+  try {
+    const result = await pool.query(`
+      SELECT
+        b.id,
+        b.reference,
+        b.status,
+        b.price_fcfa,
+        b.payment_method,
+        b.payment_status,
+        b.created_at,
+        b.passenger_name,
+        b.passenger_document,
+        b.contact_phone,
+        b.contact_email,
+        b.options,
+
+        l.id AS listing_id,
+        l.type AS listing_type,
+        l.title AS listing_title,
+        l.subtitle AS listing_subtitle,
+
+        p.id AS partner_id,
+        p.name AS partner_name,
+        p.type AS partner_type
+
+      FROM bookings b
+
+      LEFT JOIN listings l
+        ON l.id = b.listing_id
+
+      LEFT JOIN partners p
+        ON p.id = l.partner_id
+
+      ORDER BY b.created_at DESC
+    `);
+
+    res.json(result.rows);
+  } catch (error) {
+    console.error("Erreur admin bookings:", error);
+    res.status(500).json({
+      error: "Impossible de charger les réservations.",
+    });
+  }
+});
 
 module.exports = router;
