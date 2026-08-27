@@ -1,15 +1,13 @@
 const express = require("express");
 const pool = require("../db");
-
 const router = express.Router();
 
-// GET /listings?type=hotel  -> liste des offres actives, filtrables par type
+// GET /listings?type=hotel  -> liste des offres actives ET validées, filtrables par type
 router.get("/", async (req, res) => {
   const { type } = req.query;
   const query = type
-    ? { text: "SELECT * FROM listings WHERE is_active = TRUE AND type = $1 ORDER BY created_at DESC", values: [type] }
-    : { text: "SELECT * FROM listings WHERE is_active = TRUE ORDER BY created_at DESC" };
-
+    ? { text: "SELECT * FROM listings WHERE is_active = TRUE AND status = 'validee' AND type = $1 ORDER BY created_at DESC", values: [type] }
+    : { text: "SELECT * FROM listings WHERE is_active = TRUE AND status = 'validee' ORDER BY created_at DESC" };
   const { rows } = await pool.query(query);
   res.json(rows);
 });
@@ -21,11 +19,11 @@ router.get("/:id", async (req, res) => {
   res.json(rows[0]);
 });
 
-// POST /listings -> créer une offre (usage admin/partenaire, à protéger par auth admin)
+// POST /listings -> créer une offre (usage admin direct, à protéger par auth admin)
+// Note : pour la création par un partenaire, utiliser POST /partner/listings
+// (circuit avec validation admin avant publication).
 router.post("/", async (req, res) => {
   let { partner_id, type, title, subtitle, description, price_fcfa, icon, accent_color, image_url, metadata } = req.body;
-
-  // Si aucun partner_id fourni, on tente d'abord une correspondance par nom
   if (!partner_id && title) {
     const { rows: matched } = await pool.query(
       "SELECT id FROM partners WHERE LOWER(name) = LOWER($1) AND is_active = TRUE LIMIT 1",
@@ -33,8 +31,6 @@ router.post("/", async (req, res) => {
     );
     if (matched[0]) partner_id = matched[0].id;
   }
-
-  // Si toujours rien trouvé, on retombe sur une correspondance par type
   if (!partner_id && type) {
     const typeMap = {
       car_rental: "vehicle",
@@ -53,13 +49,11 @@ router.post("/", async (req, res) => {
     );
     if (matchedByType[0]) partner_id = matchedByType[0].id;
   }
-
   const { rows } = await pool.query(
     `INSERT INTO listings (partner_id, type, title, subtitle, description, price_fcfa, icon, accent_color, image_url, metadata)
      VALUES ($1,$2,$3,$4,$5,$6,$7,$8,$9,$10) RETURNING *`,
     [partner_id, type, title, subtitle, description, price_fcfa, icon, accent_color, image_url, metadata || {}]
   );
-
   res.status(201).json(rows[0]);
 });
 
