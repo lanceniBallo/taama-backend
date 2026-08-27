@@ -38,7 +38,6 @@ router.patch('/partners/:id/toggle-active', async (req, res) => {
   } catch (err) { console.error(err.message); return res.status(500).json({ error: 'Erreur serveur' }); }
 });
 
-// Régénère le code d'accès du partenaire — l'ancien code cesse de fonctionner immédiatement.
 router.patch('/partners/:id/reset-code', async (req, res) => {
   const code = generateAccessCode();
   try {
@@ -55,7 +54,6 @@ router.patch('/partners/:id/reset-code', async (req, res) => {
   }
 });
 
-// Suppression protégée : à utiliser seulement si aucun historique financier ne dépend du partenaire.
 router.delete('/partners/:id', async (req, res) => {
   try {
     const result = await pool.query('UPDATE partners SET is_active = FALSE WHERE id = $1 RETURNING id', [req.params.id]);
