@@ -1,6 +1,7 @@
 const express = require("express");
 const jwt = require("jsonwebtoken");
 const pool = require("../db");
+const adminEvents = require("../adminEvents");
 
 const router = express.Router();
 
@@ -9,7 +10,6 @@ function requireAuth(req, res, next) {
   const header = req.headers.authorization || "";
   const token = header.replace("Bearer ", "");
   if (!token) return res.status(401).json({ error: "Non authentifié" });
-
   try {
     req.user = jwt.verify(token, process.env.JWT_SECRET);
     next();
@@ -36,13 +36,10 @@ router.post("/", requireAuth, async (req, res) => {
     passenger_name, passenger_document,
     contact_phone, contact_email, options,
   } = req.body;
-
   const { rows: listingRows } = await pool.query("SELECT * FROM listings WHERE id = $1", [listing_id]);
   const listing = listingRows[0];
   if (!listing) return res.status(404).json({ error: "Offre introuvable" });
-
   const reference = "TM-" + Math.random().toString(36).slice(2, 8).toUpperCase();
-
   // Pour le MVP : statut "En attente" tant que le paiement Mobile Money
   // n'est pas confirmé par le fournisseur (webhook à brancher plus tard).
   const { rows } = await pool.query(
@@ -50,6 +47,9 @@ router.post("/", requireAuth, async (req, res) => {
      VALUES ($1,$2,$3,'En attente',$4,$5,$6,$7,$8,$9,$10) RETURNING *`,
     [reference, req.user.userId, listing_id, listing.price_fcfa, payment_method || "manuel", passenger_name || null, passenger_document || null, contact_phone || null, contact_email || null, options || {}]
   );
+
+  // Notifie le tableau de bord admin en temps réel (aucun impact sur la réponse envoyée au client)
+  adminEvents.emit("booking", { id: rows[0].id, reference: rows[0].reference });
 
   res.status(201).json(rows[0]);
 });
@@ -61,6 +61,10 @@ router.patch("/:id/confirm", async (req, res) => {
     [req.params.id]
   );
   if (!rows[0]) return res.status(404).json({ error: "Réservation introuvable" });
+
+  // Le statut a changé -> l'admin doit aussi être notifié
+  adminEvents.emit("booking", { id: rows[0].id, reference: rows[0].reference });
+
   res.json(rows[0]);
 });
 
