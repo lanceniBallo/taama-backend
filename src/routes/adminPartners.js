@@ -1,3 +1,6 @@
+cd ~/Downloads/taama-backend
+
+cat > src/routes/adminPartners.js << 'ENDOFFILE'
 const express = require('express');
 const pool = require('../db');
 const { generateAccessCode, hashAccessCode } = require('../utils/partnerCode');
@@ -38,6 +41,23 @@ router.patch('/partners/:id/toggle-active', async (req, res) => {
   } catch (err) { console.error(err.message); return res.status(500).json({ error: 'Erreur serveur' }); }
 });
 
+// Régénère le code d'accès du partenaire — l'ancien code cesse de fonctionner immédiatement.
+router.patch('/partners/:id/reset-code', async (req, res) => {
+  const code = generateAccessCode();
+  try {
+    const hash = hashAccessCode(code);
+    const result = await pool.query(
+      'UPDATE partners SET access_code_hash = $1 WHERE id = $2 RETURNING id,name,type,sector,is_active,created_at',
+      [hash, req.params.id]
+    );
+    if (!result.rows[0]) return res.status(404).json({ error: 'Partenaire introuvable' });
+    return res.json({ partner: result.rows[0], access_code: code });
+  } catch (err) {
+    console.error('reset code partenaire:', err.message);
+    return res.status(500).json({ error: 'Erreur serveur' });
+  }
+});
+
 // Suppression protégée : à utiliser seulement si aucun historique financier ne dépend du partenaire.
 router.delete('/partners/:id', async (req, res) => {
   try {
@@ -48,3 +68,9 @@ router.delete('/partners/:id', async (req, res) => {
 });
 
 module.exports = router;
+ENDOFFILE
+
+cat src/routes/adminPartners.js
+git add src/routes/adminPartners.js
+git commit -m "feat: ajouter la route de réinitialisation du code d'accès partenaire"
+git push origin main
