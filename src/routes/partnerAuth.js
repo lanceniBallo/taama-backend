@@ -2,14 +2,16 @@ const express = require("express");
 const jwt = require("jsonwebtoken");
 const pool = require("../db");
 const { hashAccessCode } = require("../utils/partnerCode");
+const { rateLimit } = require("../middleware/security");
 
 const router = express.Router();
 
 // POST /auth/partner-login
 // body: { code: "AB12CD34" }
-router.post("/partner-login", async (req, res) => {
+router.post("/partner-login", rateLimit({ windowMs: 10 * 60 * 1000, max: 10, keyFn: (req) => `${req.ip}:${req.body?.code || ""}` }), async (req, res) => {
   const { code } = req.body;
-  if (!code || code.length !== 8) {
+  if (!process.env.JWT_SECRET) return res.status(503).json({ error: "Authentification non configurée" });
+  if (!code || !/^[A-Z2-9]{8}$/i.test(code)) {
     return res.status(400).json({ error: "Code d'accès invalide (8 caractères attendus)" });
   }
 
