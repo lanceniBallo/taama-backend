@@ -1,11 +1,12 @@
 require("dotenv").config();
-
 const express = require("express");
 const cors = require("cors");
-
 const authRoutes = require("./routes/auth");
 const listingsRoutes = require("./routes/listings");
 const bookingsRoutes = require("./routes/bookings");
+const reservationLockRoutes = require("./routes/reservationLock").router;
+const releaseExpiredLocks = require("./routes/reservationLock").releaseExpiredLocks;
+const cron = require("node-cron");
 const partnerAuthRoutes = require("./routes/partnerAuth");
 const partnerBookingsRoutes = require("./routes/partnerBookings");
 const partnerWithdrawalsRoutes = require("./routes/partnerWithdrawals");
@@ -26,6 +27,7 @@ app.use(express.json());
 app.use("/auth", authRoutes);
 app.use("/listings", listingsRoutes);
 app.use("/bookings", bookingsRoutes);
+app.use("/reservations", reservationLockRoutes);
 
 // Routes partenaires
 app.use("/auth", partnerAuthRoutes);
@@ -48,9 +50,12 @@ app.get("/health", (req, res) => {
   });
 });
 
+// Purge des verrous de réservation expirés, toutes les 2 minutes
+cron.schedule("*/2 * * * *", releaseExpiredLocks);
+console.log("Purge des verrous expirés planifiée (toutes les 2 min)");
+
 // Serveur
 const port = process.env.PORT || 4000;
-
 app.listen(port, () => {
   console.log(`Taama API démarrée sur le port ${port}`);
 });
