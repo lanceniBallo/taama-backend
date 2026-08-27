@@ -9,9 +9,8 @@
 // SQL ci-dessous reste valable — seule la façon de l'exécuter change.
 
 const express = require('express');
-const { Pool } = require('pg');
+const pool = require('./db');
 
-const pool = new Pool({ connectionString: process.env.DATABASE_URL });
 const router = express.Router();
 
 const LOCK_TTL_MINUTES = 12;
