@@ -9,7 +9,7 @@
 // SQL ci-dessous reste valable — seule la façon de l'exécuter change.
 
 const express = require('express');
-const pool = require('./db');
+const pool = require('../db');
 
 const router = express.Router();
 
