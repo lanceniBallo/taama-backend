@@ -9,6 +9,7 @@ const partnerBookingsRoutes=require('./routes/partnerBookings');
 const partnerListingsRoutes=require('./routes/partnerListings');
 const adminBookingsRoutes = require('./routes/adminBookings');
 const adminFinancesRoutes = require('./routes/adminFinances');
+const adminListingsRoutes = require('./routes/adminListings');
 const adminPartnersRoutes=require('./routes/adminPartners');
 const financeRoutes=require('./routes/finance');
 const partnerFinanceRoutes=require('./routes/partnerFinance');
@@ -31,6 +32,7 @@ app.use('/partner',partnerBookingsRoutes);
 app.use('/partner', partnerListingsRoutes);
 app.use('/admin',adminPartnersRoutes);
 app.use('/admin', adminFinancesRoutes);
+app.use('/admin', adminListingsRoutes);
 app.use('/partner/finance',partnerFinanceRoutes);
 
 app.use((err,req,res,next)=>{console.error('Unhandled error:',err.message);if(res.headersSent)return next(err);return res.status(500).json({error:'Erreur serveur'});});
