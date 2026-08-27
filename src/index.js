@@ -1,61 +1,34 @@
-require("dotenv").config();
-const express = require("express");
-const cors = require("cors");
-const authRoutes = require("./routes/auth");
-const listingsRoutes = require("./routes/listings");
-const bookingsRoutes = require("./routes/bookings");
-const reservationLockRoutes = require("./routes/reservationLock").router;
-const releaseExpiredLocks = require("./routes/reservationLock").releaseExpiredLocks;
-const cron = require("node-cron");
-const partnerAuthRoutes = require("./routes/partnerAuth");
-const partnerBookingsRoutes = require("./routes/partnerBookings");
-const partnerWithdrawalsRoutes = require("./routes/partnerWithdrawals");
-const partnerListingsRoutes = require("./routes/partnerListings");
-const adminPartnersRoutes = require("./routes/adminPartners");
-const adminBookingsRoutes = require("./routes/adminBookings");
-const adminSettingsRoutes = require("./routes/adminSettings");
-const adminFinancesRoutes = require("./routes/adminFinances");
-const adminListingsRoutes = require("./routes/adminListings");
+require('dotenv').config();
+const express=require('express');
+const cors=require('cors');
+const authRoutes=require('./routes/auth');
+const listingsRoutes=require('./routes/listings');
+const bookingsRoutes=require('./routes/bookings');
+const partnerAuthRoutes=require('./routes/partnerAuth');
+const partnerBookingsRoutes=require('./routes/partnerBookings');
+const adminPartnersRoutes=require('./routes/adminPartners');
+const financeRoutes=require('./routes/finance');
+const partnerFinanceRoutes=require('./routes/partnerFinance');
+const {rateLimit}=require('./middleware/security');
 
-const app = express();
+const app=express();
+const allowedOrigins=(process.env.CORS_ORIGINS||'').split(',').map(s=>s.trim()).filter(Boolean);
+app.use(cors({origin(origin,cb){if(!origin||allowedOrigins.length===0||allowedOrigins.includes(origin))return cb(null,true);return cb(new Error('Origin non autorisée'));}}));
+app.use(express.json({limit:'1mb'}));
+app.use(rateLimit({windowMs:60_000,max:300}));
+app.disable('x-powered-by');
 
-// Middleware
-app.use(cors());
-app.use(express.json());
+app.get('/health',(req,res)=>res.json({status:'ok',service:'taama-api'}));
+app.use('/auth',authRoutes);
+app.use('/listings',listingsRoutes);
+app.use('/bookings',bookingsRoutes);
+app.use('/auth',partnerAuthRoutes);
+app.use('/partner',partnerBookingsRoutes);
+app.use('/admin',adminPartnersRoutes);
+app.use('/admin/finance',financeRoutes);
+app.use('/partner/finance',partnerFinanceRoutes);
 
-// Routes publiques
-app.use("/auth", authRoutes);
-app.use("/listings", listingsRoutes);
-app.use("/bookings", bookingsRoutes);
-app.use("/reservations", reservationLockRoutes);
+app.use((err,req,res,next)=>{console.error('Unhandled error:',err.message);if(res.headersSent)return next(err);return res.status(500).json({error:'Erreur serveur'});});
 
-// Routes partenaires
-app.use("/auth", partnerAuthRoutes);
-app.use("/partner", partnerBookingsRoutes);
-app.use("/partner", partnerWithdrawalsRoutes);
-app.use("/partner", partnerListingsRoutes);
-
-// Routes administration
-app.use("/admin", adminPartnersRoutes);
-app.use("/admin", adminBookingsRoutes);
-app.use("/admin", adminSettingsRoutes);
-app.use("/admin", adminFinancesRoutes);
-app.use("/admin", adminListingsRoutes);
-
-// Health check
-app.get("/health", (req, res) => {
-  res.json({
-    status: "ok",
-    service: "taama-backend",
-  });
-});
-
-// Purge des verrous de réservation expirés, toutes les 2 minutes
-cron.schedule("*/2 * * * *", releaseExpiredLocks);
-console.log("Purge des verrous expirés planifiée (toutes les 2 min)");
-
-// Serveur
-const port = process.env.PORT || 4000;
-app.listen(port, () => {
-  console.log(`Taama API démarrée sur le port ${port}`);
-});
+const port=process.env.PORT||4000;
+app.listen(port,()=>console.log(`Taama API démarrée sur le port ${port}`));
