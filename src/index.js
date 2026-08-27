@@ -6,6 +6,7 @@ const listingsRoutes=require('./routes/listings');
 const bookingsRoutes=require('./routes/bookings');
 const partnerAuthRoutes=require('./routes/partnerAuth');
 const partnerBookingsRoutes=require('./routes/partnerBookings');
+const adminBookingsRoutes = require('./routes/adminBookings');
 const adminPartnersRoutes=require('./routes/adminPartners');
 const financeRoutes=require('./routes/finance');
 const partnerFinanceRoutes=require('./routes/partnerFinance');
