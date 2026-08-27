@@ -24,6 +24,7 @@ app.use('/auth',authRoutes);
 app.use('/listings',listingsRoutes);
 app.use('/bookings',bookingsRoutes);
 app.use('/auth',partnerAuthRoutes);
+app.use('/admin', adminBookingsRoutes);
 app.use('/partner',partnerBookingsRoutes);
 app.use('/admin',adminPartnersRoutes);
 app.use('/admin/finance',financeRoutes);
