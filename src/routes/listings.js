@@ -5,7 +5,7 @@ const requireAdmin = require('../middleware/requireAdmin');
 const requirePartner = require('../middleware/requirePartner');
 
 const router = express.Router();
-const TYPES = new Set(['hotel','ticket','bus','flight','vehicle','car_rental','insurance','apartment','real_estate']);
+const TYPES = new Set(['hotel','ticket','bus','flight','vehicle','car_rental','insurance','apartment','real_estate','taxi']);
 
 function optionalPartner(req, res, next) {
   const auth = req.headers.authorization || '';
