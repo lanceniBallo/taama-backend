@@ -31,6 +31,7 @@ const PARTNER_TYPE_TO_LISTING_TYPE = {
   car_rental: "vehicle",
   insurance: "insurance",
   real_estate: "real_estate",
+  taxi: "taxi",
 };
 
 // GET /partner/listings -> mes offres, tous statuts confondus
