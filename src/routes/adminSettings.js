@@ -16,6 +16,7 @@ const DEFAULT_RATES = [
   ["ticket", 10.0],
   ["vehicle", 10.0],
   ["insurance", 10.0],
+  ["taxi", 10.0],
 ];
 
 // Crée la table commission_rates si elle n'existe pas encore, et insère
