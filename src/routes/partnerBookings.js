@@ -23,7 +23,8 @@ async function updateBookingStatus(req,res,status) {
     const booking = check.rows[0];
     if (!booking) { await client.query('ROLLBACK'); return res.status(404).json({ error:'Réservation introuvable pour ce partenaire' }); }
     if (status === 'Confirmé' && booking.payment_status !== 'payé') { await client.query('ROLLBACK'); return res.status(409).json({ error:'Le paiement doit être confirmé avant la validation partenaire' }); }
-    if (['Confirmé','Rejeté'].includes(booking.status)) { await client.query('ROLLBACK'); return res.status(409).json({ error:'Réservation déjà traitée' }); }
+    if (booking.status === status) { await client.query('ROLLBACK'); return res.json(booking); }
+    if (['Confirmé','Rejeté'].includes(booking.status)) { await client.query('ROLLBACK'); return res.status(409).json({ error:'Réservation déjà traitée dans un autre état' }); }
     const result = await client.query(`UPDATE bookings SET status=$1, cancelled_at=CASE WHEN $1='Rejeté' THEN now() ELSE cancelled_at END WHERE id=$2 RETURNING *`, [status, req.params.id]);
     if (status === 'Rejeté') {
       await client.query(`INSERT INTO financial_ledger (booking_id,partner_id,kind,amount_fcfa,description) VALUES ($1,$2,'booking_rejected',0,$3)`, [booking.id, req.partnerId, `Réservation ${booking.reference} rejetée par le partenaire`]);
