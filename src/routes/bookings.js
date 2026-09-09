@@ -34,9 +34,11 @@ router.post('/', requireAuth, async(req,res)=>{
       let inserted;
       for(let attempt=0;attempt<3;attempt++){
         const reference=makeReference();
-        try{ inserted=await client.query(`INSERT INTO bookings (reference,user_id,listing_id,status,price_fcfa,payment_method,passenger_name,passenger_document,contact_phone,contact_email,options,commission_rate,commission_fcfa,partner_amount_fcfa) VALUES ($1,$2,$3,'En attente',$4,$5,$6,$7,$8,$9,$10,$11,$12,$13) RETURNING *`,[reference,req.user.userId,listing_id,listing.price_fcfa,payment_method||'manuel',passenger_name||null,passenger_document||null,contact_phone||null,contact_email||null,options&&typeof options==='object'?options:{},rate,commission,partnerAmount]);break;}catch(e){if(e.code!=='23505'||attempt===2)throw e;}
+        try{ inserted=await client.query(`INSERT INTO bookings (reference,user_id,listing_id,status,price_fcfa,payment_method,passenger_name,passenger_document,contact_phone,contact_email,options,commission_rate,commission_fcfa,partner_amount_fcfa,payment_status,paid_at,payment_provider) VALUES ($1,$2,$3,'En attente',$4,$5,$6,$7,$8,$9,$10,$11,$12,$13,'payé',now(),$5) RETURNING *`,[reference,req.user.userId,listing_id,listing.price_fcfa,payment_method||'manuel',passenger_name||null,passenger_document||null,contact_phone||null,contact_email||null,options&&typeof options==='object'?options:{},rate,commission,partnerAmount]);break;}catch(e){if(e.code!=='23505'||attempt===2)throw e;}
       }
-      await client.query(`INSERT INTO financial_ledger (booking_id,partner_id,kind,amount_fcfa,description) VALUES ($1,$2,'booking_pending',$3,$4)`,[inserted.rows[0].id,listing.partner_id,listing.price_fcfa,`Réservation ${inserted.rows[0].reference}`]);
+      // NB: pas d'API de paiement réelle branchée (prototype) — le paiement est marqué "payé" immédiatement à la création.
+      // À remplacer par 'booking_pending' + webhook réel quand une vraie intégration Orange Money/Moov sera en place.
+      await client.query(`INSERT INTO financial_ledger (booking_id,partner_id,kind,amount_fcfa,description) VALUES ($1,$2,'booking_paid',$3,$4)`,[inserted.rows[0].id,listing.partner_id,listing.price_fcfa,`Réservation ${inserted.rows[0].reference}`]);
       await client.query('COMMIT');
       return res.status(201).json(inserted.rows[0]);
     }catch(err){await client.query('ROLLBACK');throw err;}finally{client.release();}
