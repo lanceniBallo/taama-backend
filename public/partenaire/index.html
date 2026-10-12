@@ -671,13 +671,9 @@ $("login-btn").addEventListener("click", async () => {
     }
     state.token = data.token;
     state.partner = data.partner;
+    // Le code décide du secteur : on ouvre directement le bon espace,
+    // même si un autre secteur a été choisi sur l'écran d'accueil.
     const realCategory = findCategoryForType(data.partner.type);
-    if (realCategory.type !== state.category.type) {
-      $("login-error").textContent = "Ce code n'est pas valide pour ce secteur.";
-      state.token = null;
-      state.partner = null;
-      return;
-    }
     state.category = realCategory;
     localStorage.setItem("taama_partner_token", data.token);
     localStorage.setItem("taama_partner_data", JSON.stringify(data.partner));
