@@ -25,7 +25,7 @@ app.disable('x-powered-by');
 
 // Espace partenaire (application installable sur téléphone et ordinateur)
 // Adresse : https://taama-backend-production.up.railway.app/partenaire
-app.get('/partenaire',(req,res)=>res.redirect(301,'/partenaire/'));
+app.use('/partenaire,(req,res)=>res.redirect(301,'/partenaire/'));
 app.use('/partenaire',express.static(path.join(__dirname,'..','public','partenaire'),{
   setHeaders(res,file){
     if(file.endsWith('sw.js')||file.endsWith('.html'))res.setHeader('Cache-Control','no-cache');
