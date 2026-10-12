@@ -1,0 +1,1208 @@
+<!DOCTYPE html>
+<html lang="fr">
+<head>
+<meta charset="UTF-8" />
+<meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no" />
+<title>Taama Partenaire</title>
+<link rel="manifest" href="manifest.webmanifest">
+<link rel="icon" type="image/png" href="icon-192.png">
+<link rel="apple-touch-icon" href="apple-touch-icon.png">
+<meta name="theme-color" content="#0A1F3D">
+<meta name="apple-mobile-web-app-capable" content="yes">
+<meta name="mobile-web-app-capable" content="yes">
+<meta name="apple-mobile-web-app-status-bar-style" content="black-translucent">
+<meta name="apple-mobile-web-app-title" content="Taama Pro">
+<style>
+  :root {
+    --navy: #0A1F3D;
+    --navy-deep: #071528;
+    --navy-light: #132B4D;
+    --gold: #D4AF37;
+    --gold-soft: #E8CD7A;
+    --cream: #F5F1E8;
+    --clay: #B5652E;
+    --success: #2E7D32;
+    --danger: #B33A3A;
+    --muted: #8A94A6;
+  }
+  * { box-sizing: border-box; -webkit-tap-highlight-color: transparent; }
+  html, body {
+    margin: 0; padding: 0; height: 100%;
+    background: var(--navy-deep);
+    font-family: -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, sans-serif;
+    overscroll-behavior: none;
+  }
+  #app {
+    max-width: 480px;
+    margin: 0 auto;
+    height: 100vh;
+    height: 100dvh;
+    background: var(--navy);
+    display: flex;
+    flex-direction: column;
+    overflow: hidden;
+    position: relative;
+  }
+  .screen { flex: 1; display: none; flex-direction: column; overflow: hidden; animation: fadeIn .25s ease; }
+  .screen.active { display: flex; }
+  @keyframes fadeIn { from { opacity: 0; transform: translateY(6px);} to { opacity:1; transform:none; } }
+
+  .statusbar {
+    display:flex; justify-content:space-between; padding: 14px 22px 4px;
+    font-size:12px; font-weight:600; color:#fff; flex-shrink:0;
+  }
+  .bogolan { display:flex; justify-content:center; gap:6px; padding:8px 0; opacity:.5; }
+  .bogolan span { width:5px; height:5px; background:var(--gold); transform:rotate(45deg); display:block; }
+
+  /* ---------- Sector select ---------- */
+  #screen-select .header { padding: 10px 22px 4px; flex-shrink:0; }
+  #screen-select h1 { font-family: Georgia, serif; font-size:22px; color:#fff; margin:0; }
+  #screen-select p { color:#96A5C2; font-size:12.5px; margin:6px 0 0; }
+  .grid {
+    flex:1; overflow-y:auto; padding: 12px 18px 24px;
+    display:grid; grid-template-columns: 1fr 1fr; gap:12px;
+    align-content:start;
+  }
+  .tile {
+    background: var(--navy-light); border:1px solid #1E3A5F; border-radius:14px;
+    padding: 20px 10px; text-align:center; cursor:pointer; transition: transform .12s, border-color .12s;
+  }
+  .tile:active { transform: scale(0.96); border-color: var(--gold); }
+  .tile .icon-circle {
+    width:48px; height:48px; border-radius:24px; background:var(--navy-deep);
+    display:flex; align-items:center; justify-content:center; margin:0 auto 10px; font-size:21px;
+  }
+  .tile .tile-label { color:#fff; font-size:12px; font-weight:600; line-height:1.3; }
+
+  .install-box { margin: 0 18px 18px; padding: 14px 16px; border-radius: 14px; background: var(--navy-light); border: 1px solid var(--gold); flex-shrink:0; }
+  .install-title { color: var(--gold-soft); font-weight: 700; font-size: 13.5px; }
+  .install-text { color: #C9D3E6; font-size: 12px; line-height: 1.5; margin-top: 6px; }
+  .install-btn { margin-top: 10px; width: 100%; background: var(--gold); color: var(--navy-deep); border: none; border-radius: 10px; padding: 11px 0; font-weight: 800; font-size: 13.5px; cursor: pointer; }
+  .install-link { color: #7C8DAE; font-size: 10.5px; margin-top: 8px; word-break: break-all; }
+  .install-link b { color: #C9D3E6; font-weight: 600; }
+
+  /* ---------- Login ---------- */
+  #screen-login .login-wrap { flex:1; display:flex; flex-direction:column; justify-content:center; padding:0 26px; }
+  .login-header { text-align:center; margin-bottom: 30px; }
+  .login-header .badge {
+    width:68px; height:68px; margin:0 auto 14px; border-radius:18px;
+    background: linear-gradient(135deg, var(--gold), var(--clay));
+    display:flex; align-items:center; justify-content:center; font-size:26px;
+  }
+  .login-header h2 { font-family: Georgia, serif; font-size:22px; color:#fff; margin:0; }
+  .login-header .sector { color: var(--gold-soft); font-size:12.5px; margin-top:5px; font-weight:600; }
+  .code-label { color:#8DA0C4; font-size:12.5px; text-align:center; margin-bottom:14px; }
+  .code-boxes { display:flex; justify-content:center; gap:7px; margin-bottom:8px; }
+  .code-boxes input {
+    width:30px; height:40px; border-radius:8px; text-align:center;
+    background: var(--navy-light); border:1.5px solid #1E3A5F; color:#fff;
+    font-family: Georgia, serif; font-size:17px; font-weight:700;
+    outline:none;
+  }
+  .code-boxes input:focus { border-color: var(--gold); }
+  .code-hint { text-align:center; color:#5C6E90; font-size:11px; margin-bottom:20px; }
+  .btn-primary {
+    background: var(--gold); border:none; border-radius:10px; padding:14px 0;
+    text-align:center; font-weight:700; color: var(--navy-deep); font-size:14.5px;
+    cursor:pointer; width:100%; margin-top:6px;
+  }
+  .btn-primary:active { opacity:.85; }
+  .btn-primary:disabled { opacity:.5; }
+  .login-help { text-align:center; color:#5C6E90; font-size:11.5px; margin-top:20px; line-height:1.5; }
+  .login-error { color:#E57373; font-size:12.5px; text-align:center; margin-top:10px; min-height:16px; }
+  .demo-codes { text-align:center; color:#4E6187; font-size:10.5px; margin-top:16px; line-height:1.6; }
+
+  /* ---------- Main (tabs) ---------- */
+  #screen-main { background: var(--cream); }
+  .top-header { background: var(--navy); padding: 16px 20px 14px; flex-shrink:0; }
+  .top-header .row { display:flex; justify-content:space-between; align-items:center; }
+  .top-header h3 { font-family: Georgia, serif; font-size:19px; color:#fff; margin:0; }
+  .top-header .sector-tag { color: var(--gold-soft); font-size:11px; margin-top:2px; }
+  .live-dot-wrap { display:flex; align-items:center; gap:5px; }
+  .live-dot { width:7px; height:7px; border-radius:4px; background:#4CAF50; animation: pulse 1.6s infinite; }
+  @keyframes pulse { 0%,100%{opacity:1;} 50%{opacity:.3;} }
+  .live-text { color:#fff; font-size:11px; }
+
+  .tab-content { flex:1; overflow-y:auto; padding:14px; }
+  .filter-row { display:flex; gap:8px; overflow-x:auto; padding: 12px 16px 4px; flex-shrink:0; }
+  .filter-chip {
+    padding:8px 15px; border-radius:20px; background:#fff; border:1px solid #ddd;
+    font-size:12.5px; font-weight:600; color: var(--navy); white-space:nowrap; cursor:pointer; flex-shrink:0;
+  }
+  .filter-chip.active { background: var(--navy); border-color:var(--navy); color:#fff; }
+
+  .empty-state { text-align:center; color:#999; font-size:13px; margin-top:50px; }
+
+  .booking-card {
+    position:relative; background:#fff; border-radius:12px; padding:15px; margin-bottom:11px;
+    box-shadow: 0 2px 8px rgba(10,31,61,0.06); cursor:pointer; border:1px solid transparent;
+  }
+  .booking-card.is-new { border-color: var(--gold-soft); }
+  .new-badge {
+    position:absolute; top:-8px; right:12px; background:var(--gold); padding:3px 9px;
+    border-radius:10px; font-size:9.5px; font-weight:800; color: var(--navy-deep);
+  }
+  .card-top { display:flex; justify-content:space-between; align-items:center; }
+  .card-ref { font-size:14px; font-weight:700; color: var(--navy); }
+  .status-pill { font-size:10px; font-weight:700; padding:4px 10px; border-radius:20px; letter-spacing:.3px; text-transform:uppercase; color:#fff; }
+  .status-pill.paid { background: var(--gold); color: var(--navy-deep); }
+  .status-pill.confirmed { background: var(--success); }
+  .status-pill.rejected, .status-pill.cancelled { background: var(--danger); }
+  .card-route { color:#666; font-size:12.5px; margin-top:4px; }
+  .card-bottom { display:flex; justify-content:space-between; margin-top:11px; }
+  .card-amount { font-weight:700; color:var(--navy); font-size:13.5px; }
+  .card-date { color:#A3A3A3; font-size:11.5px; }
+  .card-finance { display:flex; justify-content:space-between; gap:10px; margin-top:8px; padding-top:8px; border-top:1px dashed #e7e7e7; font-size:11px; }
+  .card-finance .commission { color:#A63D2F; }
+  .card-finance .net { color:var(--success); font-weight:700; }
+  .finance-grid { display:grid; grid-template-columns:1fr 1fr; gap:10px; padding:14px; }
+  .finance-card { background:#fff; border-radius:12px; padding:14px; box-shadow:0 2px 8px rgba(10,31,61,0.06); }
+  .finance-label { color:#777; font-size:11px; }
+  .finance-value { color:var(--navy); font-size:18px; font-weight:800; margin-top:5px; }
+  .finance-note { margin:0 14px 14px; padding:12px 14px; background:#FFF8E7; color:#7A5A16; border-radius:10px; font-size:11.5px; line-height:1.45; }
+  .finance-section { margin:0 14px 14px; background:#fff; border-radius:12px; padding:14px; }
+  .finance-section h4 { margin:0 0 10px; color:var(--navy); font-size:13px; }
+
+  /* ---------- Detail ---------- */
+  #screen-detail .detail-header { background: var(--navy); padding:16px 20px; flex-shrink:0; }
+  .back-link { color: var(--gold-soft); font-size:13px; margin-bottom:10px; cursor:pointer; display:inline-block; }
+  .detail-title-row { display:flex; justify-content:space-between; align-items:center; }
+  .detail-title-row .ref { color:#fff; font-size:17px; font-weight:700; }
+  .detail-body { flex:1; overflow-y:auto; padding:16px; }
+  .detail-card { background:#fff; border-radius:12px; padding:16px; margin-bottom:14px; }
+  .detail-card h4 { font-size:13px; font-weight:700; color: var(--navy); margin:0 0 10px; }
+  .detail-row { display:flex; justify-content:space-between; padding:8px 0; border-bottom:1px solid #eee; font-size:13px; }
+  .detail-row:last-child { border-bottom:none; }
+  .detail-row .label { color:#777; }
+  .detail-row .value { color: var(--navy); font-weight:600; text-align:right; }
+  .passenger-row { padding:8px 0; border-bottom:1px solid #eee; }
+  .passenger-row:last-child { border-bottom:none; }
+  .passenger-name { font-size:13.5px; font-weight:600; color: var(--navy); }
+  .passenger-phone { font-size:11.5px; color:#888; }
+  .actions-row { display:flex; gap:10px; padding:16px; flex-shrink:0; }
+  .btn-action { flex:1; text-align:center; padding:13px 0; border-radius:10px; font-weight:700; font-size:13.5px; cursor:pointer; }
+  .btn-reject { background:#fff; border:1.5px solid var(--danger); color: var(--danger); }
+  .btn-confirm { background: var(--success); color:#fff; border:none; }
+  .refund-note { background:#FFF3E0; color:#8A5A1E; font-size:12px; padding:12px 16px; margin:0 16px 16px; border-radius:10px; text-align:center; }
+
+  /* ---------- Tab bar ---------- */
+  .tabbar { display:flex; background: var(--navy); padding: 8px 0 max(10px, env(safe-area-inset-bottom)); flex-shrink:0; }
+  .tab-item { flex:1; text-align:center; cursor:pointer; padding:4px 0; }
+  .tab-item .tab-icon { font-size:17px; color:#7C88A3; }
+  .tab-item .tab-label { font-size:10px; margin-top:2px; color:#7C88A3; font-weight:500; }
+  .tab-item.active .tab-icon, .tab-item.active .tab-label { color: var(--gold); font-weight:700; }
+
+  /* ---------- Settings ---------- */
+  .settings-header { padding: 20px 20px 8px; flex-shrink:0; }
+  .settings-header h3 { font-family: Georgia, serif; font-size:20px; color:var(--navy); margin:0; }
+  .settings-body { flex:1; overflow-y:auto; padding: 8px 20px 20px; }
+  .settings-section { background:#fff; border-radius:12px; padding:16px; margin-bottom:12px; }
+  .settings-row { display:flex; justify-content:space-between; align-items:center; }
+  .settings-row-label { font-size:15px; font-weight:600; color: var(--navy); }
+  .settings-row-sub { font-size:12px; color:#888; margin-top:2px; }
+  .toggle { width:46px; height:26px; border-radius:13px; background:#ccc; position:relative; cursor:pointer; transition:background .2s; flex-shrink:0; }
+  .toggle.on { background: var(--gold); }
+  .toggle .knob { width:22px; height:22px; border-radius:11px; background:#fff; position:absolute; top:2px; left:2px; transition:left .2s; box-shadow:0 1px 3px rgba(0,0,0,.3); }
+  .toggle.on .knob { left:22px; }
+  .settings-company { display:flex; align-items:center; gap:12px; padding: 4px 0 16px; }
+  .settings-company .avatar {
+    width:48px; height:48px; border-radius:24px; background: linear-gradient(135deg, var(--gold), var(--clay));
+    display:flex; align-items:center; justify-content:center; font-size:20px;
+  }
+  .settings-company .name { font-weight:700; color:var(--navy); font-size:14.5px; }
+
+  /* ---------- Offers ---------- */
+  .offer-card { background:#fff; border-radius:14px; padding:14px; margin-bottom:10px; box-shadow:0 1px 3px rgba(0,0,0,.08); }
+  .offer-card-top { display:flex; justify-content:space-between; align-items:flex-start; gap:8px; }
+  .offer-title { font-weight:700; color:var(--navy); font-size:14.5px; }
+  .offer-sub { color:#6B7690; font-size:12px; margin-top:3px; }
+  .offer-price { color:var(--navy); font-weight:700; font-size:13.5px; margin-top:6px; }
+  .offer-pill { font-size:10.5px; font-weight:800; padding:4px 9px; border-radius:20px; white-space:nowrap; }
+  .offer-pill.en_attente { background:#FCE9C6; color:#9A6B12; }
+  .offer-pill.validee { background:#D8EFDB; color:#1E6B2C; }
+  .offer-pill.rejetee { background:#F6D6D6; color:#A32C2C; }
+  .offer-reason { font-size:11.5px; color:var(--danger); margin-top:6px; }
+  .field-group { margin-bottom:14px; }
+  .field-label { font-size:12.5px; font-weight:700; color:#fff; margin-bottom:6px; }
+  .field-input, .field-textarea {
+    width:100%; border:1.5px solid #E2E6ED; border-radius:10px; padding:11px 12px;
+    font-size:14px; color:var(--navy); background:#fff; font-family:inherit;
+  }
+  .field-textarea { min-height:70px; resize:vertical; }
+  .field-required { color:var(--danger); }
+  .settings-company .role { font-size:11.5px; color:#888; margin-top:2px; }
+  .logout-btn {
+    margin-top:8px; border:1.5px solid var(--danger); border-radius:10px; padding:14px 0;
+    text-align:center; color: var(--danger); font-weight:700; cursor:pointer; background:#fff;
+  }
+
+  /* ---------- Toast ---------- */
+  #toast {
+    position:absolute; left:50%; bottom:90px; transform:translateX(-50%) translateY(20px);
+    background: var(--navy-deep); color:#fff; padding:12px 20px; border-radius:10px;
+    font-size:13px; opacity:0; pointer-events:none; transition: all .3s; z-index:50;
+    box-shadow: 0 6px 20px rgba(0,0,0,.3); white-space:nowrap;
+  }
+  #toast.show { opacity:1; transform:translateX(-50%) translateY(0); }
+
+  ::-webkit-scrollbar { display:none; }
+
+  /* ---------- Ordinateur / tablette ---------- */
+  @media (min-width: 760px) {
+    html, body { background: radial-gradient(circle at 50% 20%, #132B4D 0%, #071528 70%); }
+    #app {
+      max-width: 520px; height: calc(100dvh - 48px); margin: 24px auto;
+      border-radius: 22px; border: 1px solid #1E3A5F;
+      box-shadow: 0 30px 80px rgba(0,0,0,.45);
+    }
+    .statusbar { display: none; }
+  }
+</style>
+</head>
+<body>
+
+<div id="app">
+
+  <!-- SECTOR SELECT -->
+  <div class="screen active" id="screen-select">
+    <div class="statusbar"><span id="clock">09:41</span><span>●●●● Taama</span></div>
+    <div class="header">
+      <h1>Espace Partenaire</h1>
+      <p>Sélectionnez votre secteur d'activité</p>
+    </div>
+    <div class="bogolan">
+      <span></span><span></span><span></span><span></span><span></span><span></span><span></span>
+      <span></span><span></span><span></span><span></span><span></span><span></span><span></span>
+    </div>
+    <div class="grid" id="sector-grid"></div>
+    <div id="install-box" class="install-box" hidden>
+      <div class="install-title">📲 Installer Taama Partenaire</div>
+      <div class="install-text" id="install-text"></div>
+      <button class="install-btn" id="install-btn" hidden>Installer l'application</button>
+      <div class="install-link">Lien à partager : <b id="install-url"></b></div>
+    </div>
+  </div>
+
+  <!-- LOGIN -->
+  <div class="screen" id="screen-login">
+    <div class="statusbar"><span id="clock2">09:41</span><span>●●●● Taama</span></div>
+    <div class="login-wrap">
+      <div class="back-link" id="login-back" style="margin-bottom:12px;">← Retour</div>
+      <div class="login-header">
+        <div class="badge" id="login-icon"></div>
+        <h2>Taama Partenaire</h2>
+        <div class="sector" id="login-sector"></div>
+      </div>
+      <div class="code-label">Entrez votre code partenaire</div>
+      <div class="code-boxes" id="code-boxes"></div>
+      <div class="code-hint">Code à 8 caractères fourni par Taama</div>
+      <div class="login-error" id="login-error"></div>
+      <button class="btn-primary" id="login-btn">Se connecter</button>
+      <div class="login-help">Code perdu ou non reçu ? Contactez l'équipe Taama pour l'activation de votre espace partenaire.</div>
+      <div class="demo-codes" id="demo-codes"></div>
+    </div>
+  </div>
+
+  <!-- MAIN (tabs) -->
+  <div class="screen" id="screen-main">
+    <div class="top-header">
+      <div class="row">
+        <div>
+          <h3 id="main-title">Réservations</h3>
+          <div class="sector-tag" id="main-sector"></div>
+        </div>
+        <div class="live-dot-wrap" id="live-wrap">
+          <div class="live-dot"></div><span class="live-text">En direct</span>
+        </div>
+      </div>
+    </div>
+
+    <!-- Tab: bookings -->
+    <div class="tab-content" id="tab-bookings" style="display:flex; flex-direction:column; padding:14px;"></div>
+
+    <!-- Tab: offers -->
+    <div id="tab-offers" style="display:none; flex-direction:column; flex:1; overflow:hidden;">
+      <div style="padding:14px 14px 0;flex-shrink:0;">
+        <div id="offer-new-btn" style="background:var(--gold);color:var(--navy-deep);text-align:center;font-weight:800;font-size:13.5px;padding:12px;border-radius:12px;cursor:pointer;">＋ Nouvelle offre</div>
+      </div>
+      <div class="tab-content" id="tab-offers-list" style="padding:14px;"></div>
+    </div>
+
+    <!-- Tab: history -->
+    <div id="tab-history" style="display:none; flex-direction:column; flex:1; overflow:hidden;">
+      <div class="filter-row" id="history-filters"></div>
+      <div class="tab-content" id="tab-history-list"></div>
+    </div>
+
+    <!-- Tab: finance -->
+    <div id="tab-finance" style="display:none; flex-direction:column; flex:1; overflow-y:auto;">
+      <div class="settings-header"><h3>Revenus</h3></div>
+      <div id="finance-content"></div>
+    </div>
+
+    <!-- Tab: settings -->
+    <div id="tab-settings" style="display:none; flex-direction:column; flex:1; overflow:hidden;">
+      <div class="settings-header"><h3>Paramètres</h3></div>
+      <div class="settings-body">
+        <div class="settings-section">
+          <div class="settings-company">
+            <div class="avatar" id="settings-avatar"></div>
+            <div>
+              <div class="name" id="settings-company-name"></div>
+              <div class="role" id="settings-role"></div>
+            </div>
+          </div>
+        </div>
+        <div class="settings-section">
+          <div class="settings-row">
+            <div>
+              <div class="settings-row-label">Notifications push</div>
+              <div class="settings-row-sub">Recevoir une alerte même app fermée</div>
+            </div>
+            <div class="toggle on" id="push-toggle"><div class="knob"></div></div>
+          </div>
+        </div>
+        <div class="settings-section" style="cursor:pointer;" id="change-code-row">
+          <div class="settings-row-label">Régénérer mon code</div>
+        </div>
+        <div class="logout-btn" id="logout-btn">Se déconnecter</div>
+      </div>
+    </div>
+
+    <div class="tabbar" id="tabbar">
+      <div class="tab-item active" data-tab="bookings"><div class="tab-icon">☰</div><div class="tab-label">Réservations</div></div>
+      <div class="tab-item" data-tab="offers"><div class="tab-icon">🏷</div><div class="tab-label">Offres</div></div>
+      <div class="tab-item" data-tab="history"><div class="tab-icon">◷</div><div class="tab-label">Historique</div></div>
+      <div class="tab-item" data-tab="finance"><div class="tab-icon">₣</div><div class="tab-label">Revenus</div></div>
+      <div class="tab-item" data-tab="settings"><div class="tab-icon">⚙</div><div class="tab-label">Paramètres</div></div>
+    </div>
+  </div>
+
+  <!-- DETAIL -->
+  <div class="screen" id="screen-detail">
+    <div class="detail-header">
+      <div class="back-link" id="detail-back">← Retour</div>
+      <div class="detail-title-row">
+        <span class="ref" id="detail-ref"></span>
+        <span class="status-pill" id="detail-status"></span>
+      </div>
+    </div>
+    <div class="detail-body" id="detail-body"></div>
+    <div id="detail-actions"></div>
+  </div>
+
+  <!-- OFFER FORM -->
+  <div class="screen" id="screen-offer-form">
+    <div class="detail-header">
+      <div class="back-link" id="offer-form-back">← Retour</div>
+      <div class="detail-title-row"><span class="ref" id="offer-form-title">Nouvelle offre</span></div>
+    </div>
+    <div class="detail-body" id="offer-form-body" style="overflow-y:auto;"></div>
+    <div style="padding:14px;flex-shrink:0;">
+      <div id="offer-form-error" style="color:var(--danger);font-size:12.5px;margin-bottom:8px;"></div>
+      <div id="offer-form-submit" style="background:var(--gold);color:var(--navy-deep);text-align:center;font-weight:800;font-size:14px;padding:14px;border-radius:12px;cursor:pointer;">Envoyer à Taama pour validation</div>
+    </div>
+  </div>
+
+  <div id="toast"></div>
+</div>
+
+<script>
+/* ---------------- API CONFIG ---------------- */
+const API_BASE = "https://taama-backend-production.up.railway.app";
+
+/* ---------------- DATA ---------------- */
+const CATEGORIES = [
+  { type: "bus", label: "Compagnie de transport", icon: "🚌", empty: "Aucun trajet réservé pour le moment" },
+  { type: "hotel", label: "Hôtel", icon: "🛏️", empty: "Aucune réservation de chambre" },
+  { type: "airline", label: "Compagnie aérienne", icon: "✈️", empty: "Aucun vol réservé pour le moment" },
+  { type: "car_rental", label: "Location de véhicules", icon: "🚗", empty: "Aucune location en cours" },
+  { type: "insurance", label: "Assurance", icon: "🛡️", empty: "Aucune souscription en attente" },
+  { type: "real_estate", label: "Agence immobilière", icon: "🏠", empty: "Aucune demande de visite ou location" },
+  { type: "taxi", label: "Chauffeur taxi", icon: "🚕", empty: "Aucune course pour le moment" },
+];
+
+// Échappement HTML : toute donnée venant du serveur (noms, téléphones, motifs…)
+// passe par esc() avant insertion dans la page, pour empêcher l'injection de code.
+function esc(v) {
+  return String(v ?? "").replace(/[&<>"']/g, c => ({ "&": "&amp;", "<": "&lt;", ">": "&gt;", '"': "&quot;", "'": "&#39;" }[c]));
+}
+
+
+// Commission Taama : configurable par secteur. Le calcul est affiché ici à titre
+// de répartition commerciale ; la source de vérité pour l'encaissement doit rester le backend.
+const COMMISSION_RATES = {
+  bus: 0.08,
+  hotel: 0.12,
+  airline: 0.05,
+  car_rental: 0.10,
+  insurance: 0.15,
+  real_estate: 0.10,
+  taxi: 0.10,
+};
+function commissionRateForPartner() {
+  return COMMISSION_RATES[state.category?.type] ?? 0.10;
+}
+
+// Traduit le type de partenaire vers le type d'offre utilisé par le backend (table listings)
+const PARTNER_TYPE_TO_LISTING_TYPE = {
+  bus: "ticket",
+  hotel: "hotel",
+  airline: "flight",
+  car_rental: "vehicle",
+  insurance: "insurance",
+  real_estate: "real_estate",
+  taxi: "taxi",
+};
+
+// Champs du formulaire de création d'offre, selon le secteur du partenaire.
+// key "meta.xxx" -> stocké dans metadata (JSON) ; sinon -> colonne directe de listings.
+const OFFER_FIELDS = {
+  hotel: [
+    { key: "title", label: "Nom de l'hôtel", type: "text", required: true },
+    { key: "image_url", label: "Photo (lien URL)", type: "text" },
+    { key: "meta.city", label: "Ville", type: "text", required: true },
+    { key: "meta.address", label: "Adresse", type: "text" },
+    { key: "meta.room_type", label: "Type de chambre", type: "text" },
+    { key: "price_fcfa", label: "Prix par nuit (FCFA)", type: "number", required: true },
+    { key: "meta.availability", label: "Disponibilité", type: "text" },
+    { key: "meta.conditions", label: "Conditions", type: "textarea" },
+  ],
+  bus: [
+    { key: "title", label: "Compagnie", type: "text", required: true },
+    { key: "meta.departure", label: "Départ", type: "text", required: true },
+    { key: "meta.destination", label: "Destination", type: "text", required: true },
+    { key: "meta.date", label: "Date", type: "date" },
+    { key: "meta.time", label: "Heure", type: "time" },
+    { key: "meta.seats", label: "Places disponibles", type: "number" },
+    { key: "price_fcfa", label: "Prix (FCFA)", type: "number", required: true },
+  ],
+  airline: [
+    { key: "title", label: "Compagnie aérienne", type: "text", required: true },
+    { key: "meta.departure", label: "Départ", type: "text", required: true },
+    { key: "meta.destination", label: "Destination", type: "text", required: true },
+    { key: "meta.date", label: "Date", type: "date" },
+    { key: "meta.time", label: "Heure", type: "time" },
+    { key: "meta.seats", label: "Places disponibles", type: "number" },
+    { key: "price_fcfa", label: "Prix (FCFA)", type: "number", required: true },
+  ],
+  car_rental: [
+    { key: "title", label: "Véhicule (marque, modèle)", type: "text", required: true },
+    { key: "image_url", label: "Photo (lien URL)", type: "text" },
+    { key: "price_fcfa", label: "Prix / jour (FCFA)", type: "number", required: true },
+    { key: "meta.availability", label: "Disponibilité", type: "text" },
+    { key: "meta.deposit", label: "Caution (FCFA)", type: "number" },
+    { key: "meta.conditions", label: "Conditions", type: "textarea" },
+  ],
+  insurance: [
+    { key: "title", label: "Nom de l'offre", type: "text", required: true },
+    { key: "meta.coverage", label: "Couverture", type: "text" },
+    { key: "price_fcfa", label: "Prix (FCFA)", type: "number", required: true },
+    { key: "meta.conditions", label: "Conditions", type: "textarea" },
+  ],
+  taxi: [
+    { key: "title", label: "Chauffeur / société", type: "text", required: true },
+    { key: "meta.vehicle_type", label: "Type de véhicule", type: "select", required: true,
+      options: [["moto", "Moto-taxi"], ["voiture", "Voiture"]] },
+    { key: "meta.distance", label: "Distance de la course", type: "select", required: true,
+      options: [["courte", "Courte (< 5 km)"], ["moyenne", "Moyenne (5–15 km)"], ["longue", "Longue (> 15 km)"]] },
+    { key: "meta.city", label: "Ville", type: "text", required: true },
+    { key: "meta.plate", label: "Immatriculation", type: "text" },
+    { key: "price_fcfa", label: "Prix de la course (FCFA)", type: "number", required: true },
+  ],
+  real_estate: [
+    { key: "title", label: "Titre de l'annonce", type: "text", required: true },
+    { key: "image_url", label: "Photo (lien URL)", type: "text" },
+    { key: "meta.city", label: "Ville", type: "text", required: true },
+    { key: "meta.address", label: "Adresse", type: "text" },
+    { key: "price_fcfa", label: "Prix (FCFA)", type: "number", required: true },
+    { key: "meta.availability", label: "Disponibilité", type: "text" },
+    { key: "meta.conditions", label: "Conditions", type: "textarea" },
+  ],
+};
+
+function money(v) { return Number(v || 0).toLocaleString('fr-FR') + ' XOF'; }
+function financeForBooking(b) {
+  const gross = Number(b.price_fcfa || 0);
+  const rate = commissionRateForPartner();
+  const commission = Math.round(gross * rate);
+  const net = Math.max(0, gross - commission);
+  const confirmed = b.status === 'Confirmé';
+  const excluded = b.status === 'Rejeté' || b.status === 'Annulé';
+  return { gross, rate, commission, net, confirmed, excluded };
+}
+
+
+// Réservations chargées depuis l'API réelle après connexion (voir fetchBookings)
+let BOOKINGS = [];
+
+// Statuts renvoyés par le backend -> libellé affiché
+const STATUS_LABELS = {
+  "En attente": "En attente",
+  "Confirmé": "Confirmée",
+  "Rejeté": "Refusée",
+  "Annulé": "Annulée",
+};
+// Classe CSS (paid/confirmed/rejected/cancelled) selon le statut backend
+function statusClass(status) {
+  const s = (status || "").toLowerCase();
+  if (s.includes("attente")) return "paid";
+  if (s.includes("confirm")) return "confirmed";
+  if (s.includes("rejet") || s.includes("refus")) return "rejected";
+  if (s.includes("annul")) return "cancelled";
+  return "paid";
+}
+function formatDate(iso) {
+  try {
+    return new Date(iso).toLocaleString('fr-FR', { day:'2-digit', month:'short', hour:'2-digit', minute:'2-digit' });
+  } catch { return iso; }
+}
+
+
+/* ---------------- STATE ---------------- */
+let state = { category: null, code: "", selectedBooking: null, activeTab: "bookings", historyFilter: null };
+
+/* ---------------- HELPERS ---------------- */
+function $(id) { return document.getElementById(id); }
+function showScreen(id) {
+  document.querySelectorAll(".screen").forEach(s => s.classList.remove("active"));
+  $(id).classList.add("active");
+}
+function toast(msg) {
+  const t = $("toast");
+  t.textContent = msg;
+  t.classList.add("show");
+  setTimeout(() => t.classList.remove("show"), 2200);
+}
+function updateClock() {
+  const now = new Date();
+  const s = now.toLocaleTimeString('fr-FR', { hour:'2-digit', minute:'2-digit' });
+  $("clock").textContent = s;
+  $("clock2").textContent = s;
+}
+updateClock(); setInterval(updateClock, 30000);
+
+/* ---------------- SECTOR SELECT ---------------- */
+function renderSectorGrid() {
+  $("sector-grid").innerHTML = CATEGORIES.map(cat => `
+    <div class="tile" data-type="${cat.type}">
+      <div class="icon-circle">${cat.icon}</div>
+      <div class="tile-label">${cat.label}</div>
+    </div>
+  `).join("");
+  document.querySelectorAll(".tile").forEach(tile => {
+    tile.addEventListener("click", () => {
+      const cat = CATEGORIES.find(c => c.type === tile.dataset.type);
+      openLogin(cat);
+    });
+  });
+}
+
+/* ---------------- LOGIN ---------------- */
+function openLogin(cat) {
+  state.category = cat;
+  state.code = "";
+  $("login-icon").textContent = cat.icon;
+  $("login-sector").textContent = cat.label;
+  $("login-error").textContent = "";
+  renderCodeBoxes();
+  $("demo-codes").innerHTML = "";
+  showScreen("screen-login");
+  setTimeout(() => document.querySelector(".code-boxes input")?.focus(), 200);
+}
+
+function renderCodeBoxes() {
+  const boxes = $("code-boxes");
+  boxes.innerHTML = "";
+  for (let i = 0; i < 8; i++) {
+    const input = document.createElement("input");
+    input.maxLength = 1;
+    input.autocomplete = "off";
+    input.dataset.index = i;
+    input.addEventListener("input", (e) => {
+      let v = e.target.value.toUpperCase().replace(/[^A-Z0-9]/g, "");
+      e.target.value = v;
+      if (v && i < 7) boxes.children[i+1].focus();
+      syncCode();
+    });
+    input.addEventListener("keydown", (e) => {
+      if (e.key === "Backspace" && !e.target.value && i > 0) {
+        boxes.children[i-1].focus();
+      }
+    });
+    input.addEventListener("paste", (e) => {
+      e.preventDefault();
+      const paste = (e.clipboardData.getData("text") || "").toUpperCase().replace(/[^A-Z0-9]/g, "").slice(0,8);
+      [...paste].forEach((ch, idx) => { if (boxes.children[idx]) boxes.children[idx].value = ch; });
+      syncCode();
+      boxes.children[Math.min(paste.length,7)]?.focus();
+    });
+    boxes.appendChild(input);
+  }
+}
+function syncCode() {
+  const boxes = $("code-boxes").children;
+  state.code = [...boxes].map(b => b.value).join("");
+}
+
+$("login-btn").addEventListener("click", async () => {
+  $("login-error").textContent = "";
+  if (state.code.length !== 8) {
+    $("login-error").textContent = "Le code doit contenir 8 caractères";
+    return;
+  }
+  $("login-btn").textContent = "Connexion...";
+  $("login-btn").disabled = true;
+  try {
+    const res = await fetch(`${API_BASE}/auth/partner-login`, {
+      method: "POST",
+      headers: { "Content-Type": "application/json" },
+      body: JSON.stringify({ code: state.code }),
+    });
+    const data = await res.json();
+    if (!res.ok) {
+      $("login-error").textContent = data.error || "Code invalide";
+      return;
+    }
+    state.token = data.token;
+    state.partner = data.partner;
+    const realCategory = findCategoryForType(data.partner.type);
+    if (realCategory.type !== state.category.type) {
+      $("login-error").textContent = "Ce code n'est pas valide pour ce secteur.";
+      state.token = null;
+      state.partner = null;
+      return;
+    }
+    state.category = realCategory;
+    localStorage.setItem("taama_partner_token", data.token);
+    localStorage.setItem("taama_partner_data", JSON.stringify(data.partner));
+    await openMain();
+  } catch (err) {
+    $("login-error").textContent = "Erreur de connexion au serveur. Réessayez.";
+  } finally {
+    $("login-btn").textContent = "Se connecter";
+    $("login-btn").disabled = false;
+  }
+});
+
+/* ---------------- MAIN / TABS ---------------- */
+async function openMain() {
+  const displayName = state.partner ? state.partner.name : state.category.label;
+  $("main-sector").textContent = displayName;
+  $("settings-avatar").textContent = state.category.icon;
+  $("settings-company-name").textContent = displayName;
+  $("settings-role").textContent = "Rôle : Gérant";
+  showScreen("screen-main");
+  switchTab("bookings");
+  await fetchBookings();
+}
+
+async function fetchBookings() {
+  $("tab-bookings").innerHTML = `<div class="empty-state">Chargement…</div>`;
+  try {
+    const res = await fetch(`${API_BASE}/partner/bookings`, {
+      headers: { "Authorization": `Bearer ${state.token}` },
+    });
+    if (res.status === 401) {
+      // session expirée -> retour au login
+      logoutPartner();
+      return;
+    }
+    const data = await res.json();
+    BOOKINGS = Array.isArray(data) ? data : [];
+  } catch (err) {
+    BOOKINGS = [];
+    toast("Impossible de charger les réservations");
+  }
+  if (state.activeTab === "bookings") renderBookingsTab();
+  if (state.activeTab === "history") renderHistoryTab();
+}
+
+function logoutPartner() {
+  state.token = null;
+  state.partner = null;
+  state.category = null;
+  state.selectedBooking = null;
+  state.activeTab = "bookings";
+  localStorage.removeItem("taama_partner_token");
+  localStorage.removeItem("taama_partner_data");
+  showScreen("screen-select");
+}
+
+document.querySelectorAll(".tab-item").forEach(item => {
+  item.addEventListener("click", () => switchTab(item.dataset.tab));
+});
+
+function switchTab(tab) {
+  state.activeTab = tab;
+  document.querySelectorAll(".tab-item").forEach(t => t.classList.toggle("active", t.dataset.tab === tab));
+  $("tab-bookings").style.display = tab === "bookings" ? "flex" : "none";
+  $("tab-offers").style.display = tab === "offers" ? "flex" : "none";
+  $("tab-history").style.display = tab === "history" ? "flex" : "none";
+  $("tab-finance").style.display = tab === "finance" ? "flex" : "none";
+  $("tab-settings").style.display = tab === "settings" ? "flex" : "none";
+  $("main-title").textContent = tab === "bookings" ? "Réservations" : tab === "offers" ? "Mes offres" : tab === "history" ? "Historique" : tab === "finance" ? "Revenus" : "Paramètres";
+  $("live-wrap").style.visibility = tab === "bookings" ? "visible" : "hidden";
+
+  if (tab === "bookings") renderBookingsTab();
+  if (tab === "offers") fetchOffers();
+  if (tab === "history") renderHistoryTab();
+  if (tab === "finance") renderFinanceTab();
+}
+
+function currentBookings() {
+  return [...BOOKINGS].sort((a, b) => new Date(b.created_at) - new Date(a.created_at));
+}
+
+function renderBookingsTab() {
+  const bookings = currentBookings();
+  const cat = state.category;
+  if (bookings.length === 0) {
+    $("tab-bookings").innerHTML = `<div class="empty-state">${cat.empty}</div>`;
+    return;
+  }
+  $("tab-bookings").innerHTML = bookings.map(bookingCardHTML).join("");
+  bindBookingCards("#tab-bookings");
+}
+
+/* ---------------- OFFERS ---------------- */
+let OFFERS = [];
+let editingOfferId = null;
+
+const OFFER_STATUS_LABELS = { en_attente: "En attente de validation", validee: "Validée", rejetee: "Rejetée" };
+
+async function fetchOffers() {
+  $("tab-offers-list").innerHTML = `<div class="empty-state">Chargement…</div>`;
+  try {
+    const res = await fetch(`${API_BASE}/partner/listings`, {
+      headers: { "Authorization": `Bearer ${state.token}` },
+    });
+    if (res.status === 401) { logoutPartner(); return; }
+    const data = await res.json();
+    OFFERS = Array.isArray(data) ? data : [];
+    renderOffersTab();
+  } catch (err) {
+    $("tab-offers-list").innerHTML = `<div class="empty-state">Erreur de chargement. Tire vers le bas pour réessayer.</div>`;
+  }
+}
+
+function renderOffersTab() {
+  if (!OFFERS.length) {
+    $("tab-offers-list").innerHTML = `<div class="empty-state">Aucune offre pour le moment. Crée ta première offre pour commencer à être visible sur Taama.</div>`;
+    return;
+  }
+  $("tab-offers-list").innerHTML = OFFERS.map(o => `
+    <div class="offer-card" data-id="${esc(o.id)}">
+      <div class="offer-card-top">
+        <div>
+          <div class="offer-title">${esc(o.title)}</div>
+          ${o.subtitle ? `<div class="offer-sub">${esc(o.subtitle)}</div>` : ""}
+        </div>
+        <span class="offer-pill ${esc(o.status)}">${esc(OFFER_STATUS_LABELS[o.status] || o.status)}</span>
+      </div>
+      <div class="offer-price">${money(o.price_fcfa)}</div>
+      ${o.status === "rejetee" && o.rejection_reason ? `<div class="offer-reason">Motif : ${esc(o.rejection_reason)}</div>` : ""}
+    </div>
+  `).join("");
+  document.querySelectorAll(".offer-card").forEach(card => {
+    card.addEventListener("click", () => {
+      const offer = OFFERS.find(o => String(o.id) === card.dataset.id);
+      if (!offer) return;
+      if (offer.status === "validee") {
+        toast("Cette offre est déjà validée. Contacte Taama pour la modifier.");
+        return;
+      }
+      openOfferForm(offer);
+    });
+  });
+}
+
+$("offer-new-btn").addEventListener("click", () => openOfferForm(null));
+$("offer-form-back").addEventListener("click", () => showScreen("screen-main"));
+
+function offerFieldsForCurrentPartner() {
+  return OFFER_FIELDS[state.category.type] || OFFER_FIELDS.hotel;
+}
+
+function openOfferForm(existingOffer) {
+  editingOfferId = existingOffer ? existingOffer.id : null;
+  $("offer-form-title").textContent = existingOffer ? "Modifier l'offre" : "Nouvelle offre";
+  $("offer-form-error").textContent = "";
+
+  const fields = offerFieldsForCurrentPartner();
+  const meta = (existingOffer && existingOffer.metadata) || {};
+  const partnerName = state.partner ? state.partner.name : "";
+
+  $("offer-form-body").innerHTML = fields.map(f => {
+    const isMeta = f.key.startsWith("meta.");
+    let rawValue = isMeta ? meta[f.key.slice(5)] : (existingOffer ? existingOffer[f.key] : "");
+    const value = rawValue == null ? "" : rawValue;
+
+    // Le nom (Compagnie, Nom de l'hôtel...) correspond toujours au partenaire connecté :
+    // verrouillé, non modifiable, pour éviter toute confusion entre partenaires.
+    if (f.key === "title" && partnerName) {
+      return `<div class="field-group">
+        <div class="field-label">${f.label}</div>
+        <div class="field-input" data-key="${f.key}" data-locked-value="${esc(partnerName)}" style="background:#F0F1F4;color:#6B7690;display:flex;align-items:center;gap:6px;">
+          🔒 ${esc(partnerName)}
+        </div>
+      </div>`;
+    }
+
+    const req = f.required ? `<span class="field-required">*</span>` : "";
+    if (f.type === "select") {
+      const opts = f.options.map(([v, l]) => `<option value="${esc(v)}" ${String(value) === v ? "selected" : ""}>${esc(l)}</option>`).join("");
+      return `<div class="field-group"><div class="field-label">${f.label} ${req}</div><select class="field-input" data-key="${f.key}"><option value="">— Choisir —</option>${opts}</select></div>`;
+    }
+    if (f.type === "textarea") {
+      return `<div class="field-group"><div class="field-label">${f.label} ${req}</div><textarea class="field-textarea" data-key="${f.key}">${esc(value)}</textarea></div>`;
+    }
+    return `<div class="field-group"><div class="field-label">${f.label} ${req}</div><input class="field-input" type="${f.type}" data-key="${f.key}" value="${esc(value)}" /></div>`;
+  }).join("");
+
+  showScreen("screen-offer-form");
+}
+
+$("offer-form-submit").addEventListener("click", async () => {
+  const fields = offerFieldsForCurrentPartner();
+  const payload = { metadata: {} };
+  let missing = false;
+
+  fields.forEach(f => {
+    const el = document.querySelector(`[data-key="${f.key}"]`);
+    const val = el ? (el.dataset.lockedValue !== undefined ? el.dataset.lockedValue : el.value.trim()) : "";
+    if (f.required && !val) missing = true;
+    if (f.key.startsWith("meta.")) {
+      payload.metadata[f.key.slice(5)] = val;
+    } else if (f.key === "price_fcfa") {
+      payload.price_fcfa = val ? Number(val) : null;
+    } else {
+      payload[f.key] = val;
+    }
+  });
+
+  if (missing) {
+    $("offer-form-error").textContent = "Merci de remplir tous les champs obligatoires (*).";
+    return;
+  }
+
+  $("offer-form-submit").textContent = "Envoi…";
+  try {
+    const url = editingOfferId ? `${API_BASE}/partner/listings/${editingOfferId}` : `${API_BASE}/partner/listings`;
+    const method = editingOfferId ? "PATCH" : "POST";
+    const res = await fetch(url, {
+      method,
+      headers: { "Content-Type": "application/json", "Authorization": `Bearer ${state.token}` },
+      body: JSON.stringify(payload),
+    });
+    const data = await res.json();
+    if (!res.ok) {
+      $("offer-form-error").textContent = data.error || "Erreur lors de l'envoi.";
+      return;
+    }
+    toast(editingOfferId ? "Offre mise à jour, en attente de validation" : "Offre envoyée à Taama pour validation");
+    showScreen("screen-main");
+    await fetchOffers();
+  } catch (err) {
+    $("offer-form-error").textContent = "Erreur de connexion au serveur.";
+  } finally {
+    $("offer-form-submit").textContent = "Envoyer à Taama pour validation";
+  }
+});
+
+const PAYMENT_LABELS = { card: "Carte bancaire", orange: "Orange Money", moov: "Moov Money" };
+const OPTION_LABELS = { bagage: "Bagage supplémentaire", siege: "Choix du siège", repas: "Repas spécial", assistance: "Assistance aéroport", assurance: "Assurance voyage" };
+
+function bookingCardHTML(b) {
+  const cls = statusClass(b.status);
+  const label = STATUS_LABELS[b.status] || b.status;
+  return `
+    <div class="booking-card" data-id="${esc(b.id)}">
+      <div class="card-top">
+        <span class="card-ref">${esc(b.reference)}</span>
+        <span class="status-pill ${cls}">${esc(label)}</span>
+      </div>
+      <div class="card-route">${esc(PAYMENT_LABELS[b.payment_method] || b.payment_method || '')}</div>
+      <div class="card-bottom">
+        <span class="card-amount">${money(b.price_fcfa)}</span>
+        <span class="card-date">${formatDate(b.created_at)}</span>
+      </div>
+      ${(() => { const f = financeForBooking(b); return `<div class="card-finance"><span class="commission">Taama : -${money(f.commission)} (${Math.round(f.rate*100)}%)</span><span class="net">Partenaire : ${money(f.net)}</span></div>`; })()}
+    </div>`;
+}
+
+function bindBookingCards(containerSel) {
+  document.querySelectorAll(containerSel + " .booking-card").forEach(card => {
+    card.addEventListener("click", () => openDetail(card.dataset.id));
+  });
+}
+
+/* ---------------- HISTORY ---------------- */
+const HISTORY_FILTERS = [
+  { label: "Toutes", value: null },
+  { label: "Confirmées", value: "Confirmé" },
+  { label: "Refusées", value: "Rejeté" },
+  { label: "Annulées", value: "Annulé" },
+];
+
+
+function renderHistoryTab() {
+  $("history-filters").innerHTML = HISTORY_FILTERS.map(f => `
+    <div class="filter-chip ${state.historyFilter === f.value ? 'active' : ''}" data-value="${f.value}">${f.label}</div>
+  `).join("");
+  document.querySelectorAll(".filter-chip").forEach(chip => {
+    chip.addEventListener("click", () => {
+      state.historyFilter = chip.dataset.value === "null" ? null : chip.dataset.value;
+      renderHistoryTab();
+    });
+  });
+
+  let bookings = currentBookings();
+  if (state.historyFilter) bookings = bookings.filter(b => b.status === state.historyFilter);
+
+  const list = $("tab-history-list");
+  if (bookings.length === 0) {
+    list.innerHTML = `<div class="empty-state">Aucune réservation trouvée</div>`;
+    return;
+  }
+  list.innerHTML = bookings.map(bookingCardHTML).join("");
+  bindBookingCards("#tab-history-list");
+}
+
+/* ---------------- FINANCE ---------------- */
+function renderFinanceTab() {
+  const rate = commissionRateForPartner();
+  const items = currentBookings().map(financeForBooking);
+  const valid = items.filter(f => !f.excluded);
+  const confirmed = items.filter(f => f.confirmed);
+  const gross = valid.reduce((s,f) => s + f.gross, 0);
+  const commission = confirmed.reduce((s,f) => s + f.commission, 0);
+  const net = confirmed.reduce((s,f) => s + f.net, 0);
+  const pending = valid.filter(f => !f.confirmed).reduce((s,f) => s + f.net, 0);
+  $("finance-content").innerHTML = `
+    <div class="finance-grid">
+      <div class="finance-card"><div class="finance-label">CA réservé</div><div class="finance-value">${money(gross)}</div></div>
+      <div class="finance-card"><div class="finance-label">Commission Taama</div><div class="finance-value">${money(commission)}</div></div>
+      <div class="finance-card"><div class="finance-label">Votre revenu confirmé</div><div class="finance-value">${money(net)}</div></div>
+      <div class="finance-card"><div class="finance-label">En attente</div><div class="finance-value">${money(pending)}</div></div>
+    </div>
+    <div class="finance-note">Taux de commission actuel pour ce secteur : <strong>${Math.round(rate*100)} %</strong>. La commission est calculée sur le montant de chaque réservation. Les réservations refusées ou annulées ne sont pas comptées comme revenus confirmés.</div>
+    <div class="finance-section">
+      <h4>Répartition des réservations confirmées</h4>
+      <div class="detail-row"><span class="label">Réservations confirmées</span><span class="value">${confirmed.length}</span></div>
+      <div class="detail-row"><span class="label">Brut</span><span class="value">${money(confirmed.reduce((s,f)=>s+f.gross,0))}</span></div>
+      <div class="detail-row"><span class="label">Commission Taama</span><span class="value">${money(commission)}</span></div>
+      <div class="detail-row"><span class="label">Net partenaire</span><span class="value">${money(net)}</span></div>
+    </div>
+    <div class="finance-section" id="withdraw-section">
+      <h4>Solde disponible pour retrait</h4>
+      <div class="finance-value" id="withdraw-balance" style="margin-bottom:10px">…</div>
+      <div class="logout-btn" id="withdraw-btn" style="background:var(--navy);cursor:pointer">Demander un retrait</div>
+      <div id="withdraw-history" style="margin-top:14px"></div>
+    </div>`;
+  loadWithdrawSection();
+}
+
+async function loadWithdrawSection() {
+  try {
+    const balRes = await fetch(`${API_BASE}/partner/balance`, {
+      headers: { "Authorization": `Bearer ${state.token}` },
+    });
+    const balData = await balRes.json();
+    const balEl = document.getElementById("withdraw-balance");
+    if (balEl) balEl.textContent = money(balData.available_balance || 0);
+  } catch (e) {}
+
+  try {
+    const histRes = await fetch(`${API_BASE}/partner/withdrawals`, {
+      headers: { "Authorization": `Bearer ${state.token}` },
+    });
+    const history = await histRes.json();
+    const histEl = document.getElementById("withdraw-history");
+    if (!histEl) return;
+    if (!Array.isArray(history) || !history.length) {
+      histEl.innerHTML = `<div class="detail-row"><span class="label">Aucune demande pour le moment</span></div>`;
+      return;
+    }
+    const STATUS_LABELS_W = { "en_attente": "En attente", "approuvé": "Approuvé", "rejeté": "Rejeté", "payé": "Payé" };
+    histEl.innerHTML = history.map(w => `
+      <div class="detail-row">
+        <span class="label">${formatDate(w.requested_at)}</span>
+        <span class="value">${money(w.amount_fcfa)} · ${esc(STATUS_LABELS_W[w.status] || w.status)}</span>
+      </div>`).join("");
+  } catch (e) {}
+}
+
+document.addEventListener("click", async (e) => {
+  if (e.target && e.target.id === "withdraw-btn") {
+    const balEl = document.getElementById("withdraw-balance");
+    const amountStr = prompt("Montant à retirer (FCFA) ?");
+    if (!amountStr) return;
+    const amount = Number(amountStr.replace(/[^\d]/g, ""));
+    if (!amount || amount <= 0) { alert("Montant invalide."); return; }
+    try {
+      const res = await fetch(`${API_BASE}/partner/withdrawals`, {
+        method: "POST",
+        headers: { "Content-Type": "application/json", "Authorization": `Bearer ${state.token}` },
+        body: JSON.stringify({ amount_fcfa: amount }),
+      });
+      const data = await res.json();
+      if (!res.ok) { alert(data.error || "Erreur lors de la demande."); return; }
+      alert("Demande de retrait envoyée. Elle sera traitée par Taama.");
+      loadWithdrawSection();
+    } catch (err) {
+      alert("Erreur réseau, réessaie plus tard.");
+    }
+  }
+});
+
+/* ---------------- DETAIL ---------------- */
+function openDetail(id) {
+  const b = currentBookings().find(x => String(x.id) === String(id));
+  if (!b) return;
+  state.selectedBooking = b;
+
+  const cls = statusClass(b.status);
+  const label = STATUS_LABELS[b.status] || b.status;
+
+  $("detail-ref").textContent = b.reference;
+  $("detail-status").className = "status-pill " + cls;
+  $("detail-status").textContent = label;
+
+  $("detail-body").innerHTML = `
+    <div class="detail-card">
+      <h4>Détails</h4>
+      <div class="detail-row"><span class="label">Partenaire</span><span class="value">${esc(state.partner ? state.partner.name : state.category.label)}</span></div>
+      <div class="detail-row"><span class="label">Référence listing</span><span class="value">${b.listing_id ? esc(String(b.listing_id).slice(0,8)) + '…' : '—'}</span></div>
+      <div class="detail-row"><span class="label">Paiement</span><span class="value">${esc(PAYMENT_LABELS[b.payment_method] || b.payment_method || '—')}</span></div>
+      <div class="detail-row"><span class="label">Montant client</span><span class="value">${money(b.price_fcfa)}</span></div>
+      <div class="detail-row"><span class="label">Commission Taama</span><span class="value">-${money(financeForBooking(b).commission)} (${Math.round(financeForBooking(b).rate*100)}%)</span></div>
+      <div class="detail-row"><span class="label">Revenu partenaire</span><span class="value">${money(financeForBooking(b).net)}</span></div>
+      <div class="detail-row"><span class="label">Créée le</span><span class="value">${formatDate(b.created_at)}</span></div>
+    </div>
+    ${(b.passenger_name || b.contact_phone || b.contact_email) ? `
+    <div class="detail-card">
+      <h4>Passager</h4>
+      ${b.passenger_name ? `<div class="detail-row"><span class="label">Nom</span><span class="value">${esc(b.passenger_name)}</span></div>` : ''}
+      ${b.passenger_document ? `<div class="detail-row"><span class="label">Document</span><span class="value">${esc(b.passenger_document)}</span></div>` : ''}
+      ${b.contact_phone ? `<div class="detail-row"><span class="label">Téléphone</span><span class="value">${esc(b.contact_phone)}</span></div>` : ''}
+      ${b.contact_email ? `<div class="detail-row"><span class="label">E-mail</span><span class="value">${esc(b.contact_email)}</span></div>` : ''}
+    </div>` : ''}
+    ${(b.options && Object.keys(b.options).some(k => b.options[k])) ? `
+    <div class="detail-card">
+      <h4>Options choisies</h4>
+      ${Object.entries(b.options).filter(([k,v]) => v).map(([k]) => `<div class="detail-row"><span class="label">${esc(OPTION_LABELS[k] || k)}</span><span class="value">✓</span></div>`).join('')}
+    </div>` : ''}
+  `;
+
+  const actionsEl = $("detail-actions");
+  if (cls === "paid") {
+    actionsEl.innerHTML = `
+      <div class="actions-row">
+        <div class="btn-action btn-reject" id="btn-reject">Refuser</div>
+        <div class="btn-action btn-confirm" id="btn-confirm">Confirmer</div>
+      </div>`;
+    $("btn-confirm").addEventListener("click", () => decideBooking(b, "confirmed"));
+    $("btn-reject").addEventListener("click", () => decideBooking(b, "rejected"));
+  } else if (cls === "rejected") {
+    actionsEl.innerHTML = `<div class="refund-note">Remboursement Mobile Money initié automatiquement pour ce client.</div>`;
+  } else {
+    actionsEl.innerHTML = "";
+  }
+
+  showScreen("screen-detail");
+}
+
+async function decideBooking(b, newStatus) {
+  const action = newStatus === "confirmed" ? "confirm" : "reject";
+  try {
+    const res = await fetch(`${API_BASE}/partner/bookings/${esc(b.id)}/${action}`, {
+      method: "PATCH",
+      headers: { "Authorization": `Bearer ${state.token}` },
+    });
+    if (!res.ok) throw new Error("échec");
+    toast(newStatus === "confirmed" ? "Réservation confirmée" : "Réservation refusée — remboursement en cours");
+    setTimeout(() => { showScreen("screen-main"); fetchBookings(); }, 350);
+  } catch (err) {
+    toast("Erreur — action non enregistrée côté serveur");
+  }
+}
+
+$("detail-back").addEventListener("click", () => showScreen("screen-main"));
+$("login-back").addEventListener("click", () => showScreen("screen-select"));
+
+/* ---------------- SETTINGS ---------------- */
+$("push-toggle").addEventListener("click", () => {
+  $("push-toggle").classList.toggle("on");
+  toast($("push-toggle").classList.contains("on") ? "Notifications activées" : "Notifications désactivées");
+});
+$("change-code-row").addEventListener("click", () => toast("Un nouveau code sera envoyé par l'équipe Taama"));
+$("logout-btn").addEventListener("click", logoutPartner);
+
+/* ---------------- LIVE POLLING (vraies données) ---------------- */
+setInterval(() => {
+  if (state.token && document.getElementById("screen-main").classList.contains("active")) {
+    fetchBookings();
+  }
+}, 15000);
+
+/* ---------------- SESSION HELPERS ---------------- */
+// Fait correspondre le "type" technique du backend (ex: "ticket") au bon secteur affiché
+const TYPE_MAP = { ticket: "bus", vehicle: "car_rental", flight: "airline", apartment: "real_estate" };
+function findCategoryForType(type) {
+  const mapped = TYPE_MAP[type] || type;
+  return CATEGORIES.find(c => c.type === mapped) || { type, label: type, icon: "🏢", empty: "Aucune réservation pour le moment" };
+}
+
+/* ---------------- INSTALLATION (téléphone / ordinateur) ---------------- */
+const PARTNER_URL = "https://taama-backend-production.up.railway.app/partenaire/";
+(function setupInstallBox() {
+  const box = $("install-box"), text = $("install-text"), btn = $("install-btn");
+  $("install-url").textContent = PARTNER_URL;
+  const installed = window.matchMedia("(display-mode: standalone)").matches || window.navigator.standalone;
+  if (installed) return; // déjà installée : on n'affiche rien
+  const ua = navigator.userAgent;
+  const isIOS = /iPhone|iPad|iPod/.test(ua) || (navigator.platform === "MacIntel" && navigator.maxTouchPoints > 1);
+  const isAndroid = /Android/.test(ua);
+  if (isIOS) {
+    text.innerHTML = "Sur iPhone, ouvre cette page dans <b>Safari</b>, touche le bouton <b>Partager</b> (carré avec une flèche), puis <b>« Sur l'écran d'accueil »</b>.";
+  } else if (isAndroid) {
+    text.innerHTML = "Sur Android, touche le bouton ci-dessous. S'il n'apparaît pas, ouvre le menu <b>⋮</b> de Chrome puis <b>« Installer l'application »</b>.";
+  } else {
+    text.innerHTML = "Sur ordinateur, clique sur le bouton ci-dessous, ou sur l'icône <b>Installer</b> à droite de la barre d'adresse de Chrome ou Edge.";
+  }
+  box.hidden = false;
+  let deferred = null;
+  window.addEventListener("beforeinstallprompt", (e) => { e.preventDefault(); deferred = e; btn.hidden = false; });
+  btn.addEventListener("click", async () => {
+    if (!deferred) return;
+    deferred.prompt();
+    const choice = await deferred.userChoice.catch(() => null);
+    deferred = null; btn.hidden = true;
+    if (choice && choice.outcome === "accepted") box.hidden = true;
+  });
+  window.addEventListener("appinstalled", () => { box.hidden = true; });
+})();
+if ("serviceWorker" in navigator) {
+  window.addEventListener("load", () => navigator.serviceWorker.register("sw.js").catch(() => {}));
+}
+
+/* ---------------- INIT ---------------- */
+(function init() {
+  renderSectorGrid();
+  const savedToken = localStorage.getItem("taama_partner_token");
+  const savedPartner = localStorage.getItem("taama_partner_data");
+  if (savedToken && savedPartner) {
+    try {
+      state.token = savedToken;
+      state.partner = JSON.parse(savedPartner);
+      state.category = findCategoryForType(state.partner.type);
+      openMain();
+    } catch {
+      logoutPartner();
+    }
+  }
+})();
+</script>
+</body>
+</html>
