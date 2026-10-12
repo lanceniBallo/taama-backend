@@ -17,20 +17,29 @@ function optionalPartner(req, res, next) {
   next();
 }
 
+// Les vols existent sous deux noms selon les versions ('airline' et 'flight') :
+// on accepte les deux et on renvoie les deux.
+const TYPE_ALIASES = { airline: ['airline', 'flight'], flight: ['airline', 'flight'] };
+
+// Seules les offres actives d'un partenaire actif sont montrées aux clients
+// (sinon le client voit une offre qu'il ne peut pas réserver).
+const VISIBLE = `l.is_active = TRUE AND (p.id IS NULL OR p.is_active = TRUE)`;
+
 router.get('/', async (req, res) => {
   try {
     const type = req.query.type ? String(req.query.type) : null;
-    if (type && !TYPES.has(type)) return res.status(400).json({ error: 'Type d’offre invalide' });
-    const q = type
-      ? { text: 'SELECT * FROM listings WHERE is_active=TRUE AND type=$1 ORDER BY created_at DESC', values: [type] }
-      : { text: 'SELECT * FROM listings WHERE is_active=TRUE ORDER BY created_at DESC', values: [] };
+    if (type && !TYPES.has(type) && !TYPE_ALIASES[type]) return res.status(400).json({ error: 'Type d’offre invalide' });
+    const types = type ? (TYPE_ALIASES[type] || [type]) : null;
+    const q = types
+      ? { text: `SELECT l.* FROM listings l LEFT JOIN partners p ON p.id = l.partner_id WHERE ${VISIBLE} AND l.type = ANY($1) ORDER BY l.created_at DESC`, values: [types] }
+      : { text: `SELECT l.* FROM listings l LEFT JOIN partners p ON p.id = l.partner_id WHERE ${VISIBLE} ORDER BY l.created_at DESC`, values: [] };
     return res.json((await pool.query(q)).rows);
   } catch (err) { console.error(err.message); return res.status(500).json({ error: 'Erreur serveur' }); }
 });
 
 router.get('/:id', async (req, res) => {
   try {
-    const { rows } = await pool.query('SELECT * FROM listings WHERE id=$1 AND is_active=TRUE', [req.params.id]);
+    const { rows } = await pool.query(`SELECT l.* FROM listings l LEFT JOIN partners p ON p.id = l.partner_id WHERE l.id = $1 AND ${VISIBLE}`, [req.params.id]);
     if (!rows[0]) return res.status(404).json({ error: 'Offre introuvable' });
     return res.json(rows[0]);
   } catch (err) { console.error(err.message); return res.status(500).json({ error: 'Erreur serveur' }); }
