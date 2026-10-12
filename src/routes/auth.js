@@ -55,9 +55,14 @@ router.post('/verify-otp', otpLimit, async (req, res) => {
   }
 });
 
-// Conservé uniquement pour les environnements de démonstration.
+// Connexion simple (nom + prénom + téléphone), utilisée par l'app client tant
+// qu'aucun fournisseur SMS n'est branché pour les codes OTP.
+// En production, elle n'est active que si la variable ALLOW_SIMPLE_LOGIN=true existe sur Railway.
+// Dès que l'envoi de SMS fonctionne, supprimer cette variable pour passer à la connexion par code.
 router.post('/simple-login', async (req, res) => {
-  if (process.env.NODE_ENV === 'production') return res.status(404).json({ error: 'Route indisponible en production' });
+  if (process.env.NODE_ENV === 'production' && process.env.ALLOW_SIMPLE_LOGIN !== 'true') {
+    return res.status(404).json({ error: 'Route indisponible en production' });
+  }
   const { nom, prenoms, phone } = req.body || {};
   if (!nom || !prenoms || !phone) return res.status(400).json({ error: 'Nom, prénom(s) et numéro de téléphone requis' });
   const fullName = `${String(prenoms).trim()} ${String(nom).trim()}`;
@@ -68,6 +73,12 @@ router.post('/simple-login', async (req, res) => {
       user = (await pool.query(`INSERT INTO users (phone, full_name, phone_verified) VALUES ($1,$2,FALSE) RETURNING *`, [phone, fullName])).rows[0];
     } else if (!user.full_name) {
       user = (await pool.query('UPDATE users SET full_name = $1 WHERE id = $2 RETURNING *', [fullName, user.id])).rows[0];
+    } else {
+      // Protection minimale : un numéro déjà enregistré ne peut être utilisé qu'avec le même nom.
+      const norm = (v) => String(v).normalize('NFD').replace(/[̀-ͯ]/g, '').replace(/\s+/g, ' ').trim().toLowerCase();
+      if (norm(user.full_name) !== norm(fullName)) {
+        return res.status(401).json({ error: 'Ce numéro est déjà associé à un autre nom. Vérifiez votre nom et vos prénoms.' });
+      }
     }
     return res.json({ token: signUserToken(user), user: { id: user.id, phone: user.phone, full_name: user.full_name } });
   } catch (err) {
