@@ -4,6 +4,7 @@ const crypto = require('crypto');
 const pool = require('../db');
 const { splitAmount } = require('../utils/finance');
 const { requireEnv, safeEqual } = require('../middleware/security');
+const { notifyPartner } = require('../utils/push');
 
 const router = express.Router();
 
@@ -40,6 +41,7 @@ router.post('/', requireAuth, async(req,res)=>{
       // À remplacer par 'booking_pending' + webhook réel quand une vraie intégration Orange Money/Moov sera en place.
       await client.query(`INSERT INTO financial_ledger (booking_id,partner_id,kind,amount_fcfa,description) VALUES ($1,$2,'booking_paid',$3,$4)`,[inserted.rows[0].id,listing.partner_id,listing.price_fcfa,`Réservation ${inserted.rows[0].reference}`]);
       await client.query('COMMIT');
+      notifyPartner(listing.partner_id); // notification "Nouvelle réservation" sur les appareils du partenaire
       return res.status(201).json(inserted.rows[0]);
     }catch(err){await client.query('ROLLBACK');throw err;}finally{client.release();}
   }catch(err){console.error('create booking:',err.message);return res.status(500).json({error:'Erreur serveur'});}

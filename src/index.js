@@ -14,6 +14,7 @@ const adminListingsRoutes = require('./routes/adminListings');
 const adminPartnersRoutes=require('./routes/adminPartners');
 const financeRoutes=require('./routes/finance');
 const partnerFinanceRoutes=require('./routes/partnerFinance');
+const partnerPushRoutes=require('./routes/partnerPush');
 const {rateLimit}=require('./middleware/security');
 
 const app=express();
@@ -54,6 +55,7 @@ app.use('/admin',adminPartnersRoutes);
 app.use('/admin', adminFinancesRoutes);
 app.use('/admin', adminListingsRoutes);
 app.use('/partner/finance',partnerFinanceRoutes);
+app.use('/partner',partnerPushRoutes);
 
 app.use((err,req,res,next)=>{console.error('Unhandled error:',err.message);if(res.headersSent)return next(err);return res.status(500).json({error:'Erreur serveur'});});
 

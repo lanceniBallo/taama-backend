@@ -318,6 +318,11 @@
     </div>
 
     <!-- Tab: bookings -->
+    <div id="notif-banner" hidden style="margin:12px 14px 0;padding:12px 14px;border-radius:12px;background:#FFF8E7;border:1px solid #E8CD7A;flex-shrink:0">
+      <div style="font-weight:800;color:#0A1F3D;font-size:13px">🔔 Recevoir une alerte à chaque nouvelle réservation</div>
+      <div id="notif-banner-text" style="color:#7A5A16;font-size:11.5px;margin-top:3px;line-height:1.4">Même quand l'application est fermée.</div>
+      <button id="notif-enable" style="margin-top:9px;width:100%;background:#0A1F3D;color:#fff;border:none;border-radius:9px;padding:10px 0;font-weight:700;font-size:13px;cursor:pointer">Activer les notifications</button>
+    </div>
     <div class="tab-content" id="tab-bookings" style="display:flex; flex-direction:column; padding:14px;"></div>
 
     <!-- Tab: offers -->
@@ -695,10 +700,13 @@ async function openMain() {
   showScreen("screen-main");
   switchTab("bookings");
   await fetchBookings();
+  if (pushSupported && Notification.permission === "granted") enablePush(false);
+  else setPushUI(false);
 }
 
+let knownBookingIds = null; // null = premier chargement (pas d'alerte)
 async function fetchBookings() {
-  $("tab-bookings").innerHTML = `<div class="empty-state">Chargement…</div>`;
+  if (!BOOKINGS.length) $("tab-bookings").innerHTML = `<div class="empty-state">Chargement…</div>`;
   try {
     const res = await fetch(`${API_BASE}/partner/bookings`, {
       headers: { "Authorization": `Bearer ${state.token}` },
@@ -710,6 +718,12 @@ async function fetchBookings() {
     }
     const data = await res.json();
     BOOKINGS = Array.isArray(data) ? data : [];
+    const ids = new Set(BOOKINGS.map(b => String(b.id)));
+    if (knownBookingIds) {
+      const fresh = BOOKINGS.filter(b => !knownBookingIds.has(String(b.id)));
+      if (fresh.length) alertNewBookings(fresh);
+    }
+    knownBookingIds = ids;
   } catch (err) {
     BOOKINGS = [];
     toast("Impossible de charger les réservations");
@@ -726,6 +740,8 @@ function logoutPartner() {
   state.activeTab = "bookings";
   localStorage.removeItem("taama_partner_token");
   localStorage.removeItem("taama_partner_data");
+  knownBookingIds = null;
+  BOOKINGS = [];
   showScreen("screen-select");
 }
 
@@ -1132,10 +1148,114 @@ $("detail-back").addEventListener("click", () => showScreen("screen-main"));
 $("login-back").addEventListener("click", () => showScreen("screen-select"));
 
 /* ---------------- SETTINGS ---------------- */
-$("push-toggle").addEventListener("click", () => {
-  $("push-toggle").classList.toggle("on");
-  toast($("push-toggle").classList.contains("on") ? "Notifications activées" : "Notifications désactivées");
+$("push-toggle").addEventListener("click", async () => {
+  if ($("push-toggle").classList.contains("on")) await disablePush();
+  else await enablePush(true);
 });
+$("notif-enable").addEventListener("click", () => enablePush(true));
+
+/* ---------------- NOTIFICATIONS ---------------- */
+const pushSupported = "serviceWorker" in navigator && "PushManager" in window && "Notification" in window;
+const isIOS = /iPhone|iPad|iPod/.test(navigator.userAgent) || (navigator.platform === "MacIntel" && navigator.maxTouchPoints > 1);
+const isStandalone = window.matchMedia("(display-mode: standalone)").matches || window.navigator.standalone;
+
+function urlB64ToUint8Array(b64) {
+  const pad = "=".repeat((4 - b64.length % 4) % 4);
+  const raw = atob((b64 + pad).replace(/-/g, "+").replace(/_/g, "/"));
+  return Uint8Array.from([...raw].map(c => c.charCodeAt(0)));
+}
+
+function setPushUI(on) {
+  $("push-toggle").classList.toggle("on", on);
+  const banner = $("notif-banner");
+  if (on) { banner.hidden = true; return; }
+  if (!pushSupported) {
+    if (isIOS && !isStandalone) {
+      $("notif-banner-text").textContent = "Sur iPhone : installez d'abord l'app (Safari → Partager → « Sur l'écran d'accueil »), puis ouvrez-la depuis l'icône.";
+      $("notif-enable").hidden = true;
+      banner.hidden = false;
+    } else banner.hidden = true;
+    return;
+  }
+  if (Notification.permission === "denied") {
+    $("notif-banner-text").textContent = "Les notifications sont bloquées. Autorisez-les dans les réglages du navigateur pour ce site, puis rechargez la page.";
+    $("notif-enable").hidden = true;
+  } else {
+    $("notif-banner-text").textContent = "Même quand l'application est fermée.";
+    $("notif-enable").hidden = false;
+  }
+  banner.hidden = false;
+}
+
+async function enablePush(userAsked) {
+  if (!pushSupported) { setPushUI(false); if (userAsked) toast("Notifications non disponibles sur cet appareil"); return; }
+  try {
+    const perm = Notification.permission === "granted" ? "granted" : (userAsked ? await Notification.requestPermission() : "default");
+    if (perm !== "granted") { setPushUI(false); return; }
+    const reg = await navigator.serviceWorker.ready;
+    const keyRes = await fetch(`${API_BASE}/partner/push/key`, { headers: { "Authorization": `Bearer ${state.token}` } });
+    if (!keyRes.ok) { setPushUI(false); if (userAsked) toast("Notifications pas encore activées côté serveur"); return; }
+    const { key } = await keyRes.json();
+    let sub = await reg.pushManager.getSubscription();
+    if (!sub) sub = await reg.pushManager.subscribe({ userVisibleOnly: true, applicationServerKey: urlB64ToUint8Array(key) });
+    const r = await fetch(`${API_BASE}/partner/push/subscribe`, {
+      method: "POST",
+      headers: { "Content-Type": "application/json", "Authorization": `Bearer ${state.token}` },
+      body: JSON.stringify({ endpoint: sub.endpoint }),
+    });
+    if (!r.ok) throw new Error("abonnement refusé");
+    setPushUI(true);
+    if (userAsked) toast("Notifications activées ✓");
+  } catch (e) {
+    console.error("push:", e);
+    setPushUI(false);
+    if (userAsked) toast("Impossible d'activer les notifications");
+  }
+}
+
+async function disablePush() {
+  try {
+    const reg = await navigator.serviceWorker.ready;
+    const sub = await reg.pushManager.getSubscription();
+    if (sub) {
+      await fetch(`${API_BASE}/partner/push/unsubscribe`, {
+        method: "POST",
+        headers: { "Content-Type": "application/json", "Authorization": `Bearer ${state.token}` },
+        body: JSON.stringify({ endpoint: sub.endpoint }),
+      }).catch(() => {});
+      await sub.unsubscribe();
+    }
+  } catch (e) {}
+  setPushUI(false);
+  toast("Notifications désactivées");
+}
+
+// Alerte quand l'app est ouverte : son, vibration, message, et notification si l'onglet est en arrière-plan
+function playChime() {
+  try {
+    const ctx = new (window.AudioContext || window.webkitAudioContext)();
+    [880, 1175, 1568].forEach((f, i) => {
+      const o = ctx.createOscillator(), g = ctx.createGain();
+      o.frequency.value = f; o.type = "sine";
+      g.gain.setValueAtTime(0.0001, ctx.currentTime + i * 0.16);
+      g.gain.exponentialRampToValueAtTime(0.25, ctx.currentTime + i * 0.16 + 0.02);
+      g.gain.exponentialRampToValueAtTime(0.0001, ctx.currentTime + i * 0.16 + 0.3);
+      o.connect(g); g.connect(ctx.destination);
+      o.start(ctx.currentTime + i * 0.16); o.stop(ctx.currentTime + i * 0.16 + 0.32);
+    });
+  } catch (e) {}
+}
+function alertNewBookings(fresh) {
+  playChime();
+  if (navigator.vibrate) navigator.vibrate([200, 100, 200]);
+  const msg = fresh.length > 1 ? `${fresh.length} nouvelles réservations` : `Nouvelle réservation ${fresh[0].reference || ""} · ${money(fresh[0].price_fcfa)}`;
+  toast("🔔 " + msg);
+  if (document.hidden && pushSupported && Notification.permission === "granted") {
+    navigator.serviceWorker.ready.then(reg => reg.showNotification("Taama Pro", {
+      body: msg, icon: "icon-192.png", badge: "icon-192.png", tag: "taama-booking", renotify: true,
+    })).catch(() => {});
+  }
+}
 $("change-code-row").addEventListener("click", () => toast("Un nouveau code sera envoyé par l'équipe Taama"));
 $("logout-btn").addEventListener("click", logoutPartner);
 

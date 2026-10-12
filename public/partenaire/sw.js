@@ -1,7 +1,7 @@
 // Taama Partenaire — service worker
 // Permet l'installation sur téléphone/ordinateur et garde l'écran de l'app en cache.
 // Les données (réservations, offres…) viennent toujours du serveur, jamais du cache.
-const CACHE = "taama-partenaire-v1";
+const CACHE = "taama-partenaire-v2";
 const SHELL = ["./", "./index.html", "./manifest.webmanifest", "./icon-192.png", "./icon-512.png"];
 
 self.addEventListener("install", (e) => {
@@ -24,4 +24,28 @@ self.addEventListener("fetch", (e) => {
       .then((res) => { const copy = res.clone(); caches.open(CACHE).then((c) => c.put(e.request, copy)); return res; })
       .catch(() => caches.match(e.request).then((r) => r || caches.match("./index.html")))
   );
+});
+
+// ---------- Notifications « Nouvelle réservation » ----------
+self.addEventListener("push", (e) => {
+  let data = {};
+  try { data = e.data ? e.data.json() : {}; } catch (_) {}
+  e.waitUntil(self.registration.showNotification(data.title || "Taama Pro — Nouvelle réservation", {
+    body: data.body || "Un client vient de réserver. Ouvrez l'app pour confirmer.",
+    icon: "icon-192.png",
+    badge: "icon-192.png",
+    tag: "taama-booking",
+    renotify: true,
+    vibrate: [200, 100, 200, 100, 300],
+    requireInteraction: true,
+    data: { url: "/partenaire/" },
+  }));
+});
+
+self.addEventListener("notificationclick", (e) => {
+  e.notification.close();
+  e.waitUntil(self.clients.matchAll({ type: "window", includeUncontrolled: true }).then((list) => {
+    for (const c of list) if (c.url.includes("/partenaire")) return c.focus();
+    return self.clients.openWindow("/partenaire/");
+  }));
 });
