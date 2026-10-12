@@ -1,5 +1,6 @@
 require('dotenv').config();
 const express=require('express');
+const path=require('path');
 const cors=require('cors');
 const authRoutes=require('./routes/auth');
 const listingsRoutes=require('./routes/listings');
@@ -21,6 +22,16 @@ app.use(cors({origin(origin,cb){if(!origin||allowedOrigins.length===0||allowedOr
 app.use(express.json({limit:'1mb'}));
 app.use(rateLimit({windowMs:60_000,max:300}));
 app.disable('x-powered-by');
+
+// Espace partenaire (application installable sur téléphone et ordinateur)
+// Adresse : https://taama-backend-production.up.railway.app/partenaire
+app.get('/partenaire',(req,res)=>res.redirect(301,'/partenaire/'));
+app.use('/partenaire',express.static(path.join(__dirname,'..','public','partenaire'),{
+  setHeaders(res,file){
+    if(file.endsWith('sw.js')||file.endsWith('.html'))res.setHeader('Cache-Control','no-cache');
+    if(file.endsWith('.webmanifest'))res.setHeader('Content-Type','application/manifest+json');
+  }
+}));
 
 app.get('/health',(req,res)=>res.json({status:'ok',service:'taama-api'}));
 app.use('/auth',authRoutes);
