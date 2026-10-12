@@ -25,8 +25,17 @@ app.disable('x-powered-by');
 
 // Espace partenaire (application installable sur téléphone et ordinateur)
 // Adresse : https://taama-backend-production.up.railway.app/partenaire
-app.use('/partenaire,(req,res)=>res.redirect(301,'/partenaire/'));
 app.use('/partenaire',express.static(path.join(__dirname,'..','public','partenaire'),{
+  setHeaders(res,file){
+    if(file.endsWith('sw.js')||file.endsWith('.html'))res.setHeader('Cache-Control','no-cache');
+    if(file.endsWith('.webmanifest'))res.setHeader('Content-Type','application/manifest+json');
+  }
+}));
+
+// Application client Taama (installable sur téléphone et ordinateur)
+// Adresse : https://taama-backend-production.up.railway.app/app  (la racine "/" y renvoie)
+app.get('/',(req,res)=>res.redirect(302,'/app/'));
+app.use('/app',express.static(path.join(__dirname,'..','public','app'),{
   setHeaders(res,file){
     if(file.endsWith('sw.js')||file.endsWith('.html'))res.setHeader('Cache-Control','no-cache');
     if(file.endsWith('.webmanifest'))res.setHeader('Content-Type','application/manifest+json');
