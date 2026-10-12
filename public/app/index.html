@@ -980,7 +980,7 @@ function Insurance({ back, onBook }) {
 }
 
 function Taxi({ back, onBook }) {
-  const [step, setStep] = useState("form"); // "form" | "vehicle" | "map" | "receipt"
+  const [step, setStep] = useState("form"); // "form" | "vehicle" | "map" (recherche + validation)
   const [vehicleType, setVehicleType] = useState(null); // "moto" | "voiture"
   const [distance, setDistance] = useState("courte"); // "courte" | "moyenne" | "longue"
   const [pickup, setPickup] = useState("Position actuelle");
@@ -991,11 +991,27 @@ function Taxi({ back, onBook }) {
   // n'existe encore pour une combinaison donnée, on retombe sur la grille tarifaire locale
   // (TAXI_PRICES) pour que l'écran reste utilisable pendant la mise en place des chauffeurs.
   const [taxiListings, setTaxiListings] = useState([]);
-  useEffect(() => {
-    apiCall("/listings?type=taxi")
+  const [searching, setSearching] = useState(false);
+  const [searchRound, setSearchRound] = useState(0);
+  function loadTaxiListings() {
+    return apiCall("/listings?type=taxi")
       .then(setTaxiListings)
       .catch((e) => console.error("Impossible de charger les offres taxi :", e.message));
-  }, []);
+  }
+  useEffect(() => { loadTaxiListings(); }, []);
+  // Dès que le client a choisi moto ou voiture : recherche d'un chauffeur disponible
+  // (on recharge les offres des chauffeurs, puis on affiche le résultat avec le prix).
+  useEffect(() => {
+    if (step !== "map") return;
+    setSearching(true);
+    let done = false;
+    const started = Date.now();
+    loadTaxiListings().finally(() => {
+      const wait = Math.max(0, 2200 - (Date.now() - started));
+      setTimeout(() => { if (!done) setSearching(false); }, wait);
+    });
+    return () => { done = true; };
+  }, [step, searchRound, vehicleType]);
   function findTaxiListing(vType, dist) {
     return taxiListings.find((l) => l.metadata?.vehicle_type === vType && l.metadata?.distance === dist) || null;
   }
@@ -1099,80 +1115,78 @@ function Taxi({ back, onBook }) {
     );
   }
 
-  // ÉTAPE 3 — Carte
-  if (step === "map") {
-    return (
-      <div className="pb-8">
-        <TopBar title="Votre trajet" onBack={() => setStep("vehicle")} />
-        <div className="mx-5 rounded-2xl overflow-hidden relative" style={{ height: 300, background: "#0B1526" }}>
-          <div className="absolute inset-0" style={{
-            backgroundImage: "linear-gradient(#F0ECE114 1px, transparent 1px), linear-gradient(90deg, #F0ECE114 1px, transparent 1px)",
-            backgroundSize: "26px 26px",
-          }} />
-          <span className="absolute text-sm opacity-40" style={{ top: 28, left: 22 }}>🏥</span>
-          <span className="absolute text-sm opacity-40" style={{ top: 54, right: 30 }}>🎓</span>
-          <span className="absolute text-sm opacity-40" style={{ bottom: 36, left: 40 }}>🏫</span>
-
-          <span className="absolute text-lg taxi-drive-icon" style={{ top: "58%", left: "26%" }}>{vehicleType === "moto" ? "🏍️" : "🚗"}</span>
-
-          <div className="absolute" style={{ top: "46%", left: "50%", transform: "translate(-50%,-50%)" }}>
-            <div className="absolute -top-7 left-1/2 -translate-x-1/2 rounded-full px-2 py-0.5 text-[10px] whitespace-nowrap" style={{ background: "#F0ECE1", color: "#1B2A4A" }}>~1 min</div>
-            <div className="rounded-full taxi-pulse-marker" style={{ width: 14, height: 14, background: gold }} />
-          </div>
-        </div>
-
-        <div className="px-5 mt-4">
-          <div className="rounded-2xl px-4 py-4" style={{ background: "#1B2A4A" }}>
-            <div className="text-[11px] uppercase tracking-wide" style={{ color: "#F0ECE199" }}>Où allez-vous ?</div>
-            <div className="text-sm mt-1 truncate" style={{ color: "#F0ECE1", fontFamily: "'Fraunces', serif" }}>{destination}</div>
-          </div>
-        </div>
-
-        <div className="px-5 mt-4">
-          <button onClick={() => setStep("receipt")} className="w-full rounded-xl py-3 text-sm font-medium text-white" style={{ background: accent }}>
-            Continuer
-          </button>
-        </div>
-      </div>
-    );
-  }
-
-  // ÉTAPE 4 — Reçu (informations et paiement déjà enregistrés)
+  // ÉTAPE 3 — Recherche d'un chauffeur, puis validation (le paiement vient après)
+  const vehicleLabel = vehicleType === "moto" ? "Moto-taxi" : "Voiture";
+  const vehicleEmoji = vehicleType === "moto" ? "🏍️" : "🚕";
   return (
     <div className="pb-8">
-      <TopBar title="Votre course" onBack={() => setStep("map")} />
-      <div className="px-5">
-        <div className="rounded-2xl p-5 relative overflow-hidden" style={{ background: "#1B2A4A" }}>
-          <div className="absolute inset-0 opacity-20" style={{ backgroundImage: MOTIF(gold) }} />
-          <div className="relative flex flex-col items-center text-center">
-            <span className="text-3xl">{vehicleType === "moto" ? "🏍️" : "🚕"}</span>
-            <div className="text-xs mt-2" style={{ color: "#F0ECE199" }}>{vehicleType === "moto" ? "Moto-taxi" : "Voiture"}</div>
-            <div className="text-2xl mt-1" style={{ color: "#F0ECE1", fontFamily: "'Fraunces', serif", fontWeight: 600 }}>{price}</div>
-          </div>
-        </div>
-
-        <div className="mt-4 flex flex-col gap-2.5">
-          <div className="flex items-center gap-3 rounded-xl px-4 py-3" style={{ background: "#F0ECE112" }}>
-            <span>🧭</span>
-            <div className="min-w-0">
-              <div className="text-[10px] uppercase tracking-wide" style={{ color: "#F0ECE199" }}>Départ</div>
-              <div className="text-sm truncate" style={{ color: "#F0ECE1" }}>{pickup}</div>
-            </div>
-          </div>
-          <div className="flex items-center gap-3 rounded-xl px-4 py-3" style={{ background: "#F0ECE112" }}>
-            <span>🏁</span>
-            <div className="min-w-0">
-              <div className="text-[10px] uppercase tracking-wide" style={{ color: "#F0ECE199" }}>Destination</div>
-              <div className="text-sm truncate" style={{ color: "#F0ECE1" }}>{destination}</div>
-            </div>
-          </div>
+      <TopBar title={searching ? "Recherche d'un chauffeur" : (matchedListing ? "Chauffeur trouvé" : "Aucun chauffeur")} onBack={() => setStep("vehicle")} />
+      <div className="mx-5 rounded-2xl overflow-hidden relative" style={{ height: 230, background: "#0B1526" }}>
+        <div className="absolute inset-0" style={{
+          backgroundImage: "linear-gradient(#F0ECE114 1px, transparent 1px), linear-gradient(90deg, #F0ECE114 1px, transparent 1px)",
+          backgroundSize: "26px 26px",
+        }} />
+        <span className="absolute text-sm opacity-40" style={{ top: 28, left: 22 }}>🏥</span>
+        <span className="absolute text-sm opacity-40" style={{ top: 54, right: 30 }}>🎓</span>
+        <span className="absolute text-sm opacity-40" style={{ bottom: 36, left: 40 }}>🏫</span>
+        {(searching || matchedListing) && (
+          <span className={"absolute text-lg" + (searching ? " taxi-drive-icon" : "")} style={{ top: "58%", left: "30%" }}>{vehicleEmoji}</span>
+        )}
+        <div className="absolute" style={{ top: "46%", left: "50%", transform: "translate(-50%,-50%)" }}>
+          <div className="rounded-full taxi-pulse-marker" style={{ width: 14, height: 14, background: gold }} />
         </div>
       </div>
 
-      <div className="px-5 mt-5">
-        <button onClick={confirmBooking} className="w-full rounded-xl py-3.5 text-sm font-medium" style={{ background: gold, color: "#1B2A4A" }}>
-          Trouver un chauffeur
-        </button>
+      <div className="px-5 mt-4">
+        {searching ? (
+          <div className="rounded-2xl px-4 py-5 text-center" style={{ background: "#1B2A4A" }}>
+            <div className="text-sm" style={{ color: "#F0ECE1", fontFamily: "'Fraunces', serif", fontWeight: 600 }}>Recherche d'un chauffeur {vehicleType === "moto" ? "moto-taxi" : "voiture"}…</div>
+            <div className="text-[11px] mt-1" style={{ color: "#F0ECE199" }}>{pickup} → {destination}</div>
+          </div>
+        ) : matchedListing ? (
+          <div className="rounded-2xl p-4" style={{ background: "#1B2A4A" }}>
+            <div className="flex items-center gap-3">
+              <span className="w-11 h-11 rounded-full flex items-center justify-center text-xl shrink-0" style={{ background: "#F0ECE114" }}>{vehicleEmoji}</span>
+              <div className="min-w-0 flex-1">
+                <div className="text-sm truncate" style={{ color: "#F0ECE1", fontFamily: "'Fraunces', serif", fontWeight: 600 }}>{matchedListing.title}</div>
+                <div className="text-[11px]" style={{ color: "#F0ECE199" }}>
+                  {vehicleLabel}{matchedListing.metadata?.plate ? " · " + matchedListing.metadata.plate : ""}{matchedListing.metadata?.city ? " · " + matchedListing.metadata.city : ""}
+                </div>
+              </div>
+              <div className="text-right shrink-0">
+                <div className="text-base" style={{ color: gold, fontFamily: "'IBM Plex Mono', monospace" }}>{price}</div>
+                <div className="text-[10px]" style={{ color: "#F0ECE199" }}>prix de la course</div>
+              </div>
+            </div>
+            <div className="mt-3 pt-3 border-t text-[11px] flex flex-col gap-1" style={{ borderColor: "#F0ECE11F", color: "#F0ECE1CC" }}>
+              <div>🧭 {pickup}</div>
+              <div>🏁 {destination}</div>
+            </div>
+          </div>
+        ) : (
+          <div className="rounded-2xl px-4 py-5 text-center" style={{ background: "#1B2A4A" }}>
+            <div className="text-sm" style={{ color: "#F0ECE1", fontFamily: "'Fraunces', serif", fontWeight: 600 }}>Aucun chauffeur {vehicleType === "moto" ? "moto-taxi" : "voiture"} disponible pour le moment</div>
+            <div className="text-[11px] mt-1" style={{ color: "#F0ECE199" }}>Réessayez dans quelques instants ou choisissez un autre véhicule. Vous ne payez rien tant qu'aucun chauffeur n'est trouvé.</div>
+          </div>
+        )}
+      </div>
+
+      <div className="px-5 mt-4 flex flex-col gap-2">
+        {!searching && matchedListing && (
+          <button onClick={confirmBooking} className="w-full rounded-xl py-3.5 text-sm font-medium" style={{ background: gold, color: "#1B2A4A" }}>
+            Valider ce chauffeur et payer {price}
+          </button>
+        )}
+        {!searching && !matchedListing && (
+          <>
+            <button onClick={() => setSearchRound((n) => n + 1)} className="w-full rounded-xl py-3 text-sm font-medium text-white" style={{ background: accent }}>
+              Relancer la recherche
+            </button>
+            <button onClick={() => setStep("vehicle")} className="w-full rounded-xl py-3 text-sm border" style={{ borderColor: "#F0ECE133", color: "#F0ECE1" }}>
+              Choisir un autre véhicule
+            </button>
+          </>
+        )}
       </div>
     </div>
   );
