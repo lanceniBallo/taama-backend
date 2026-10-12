@@ -1,0 +1,17 @@
+TAAMA PARTENAIRE — application téléphone + ordinateur
+
+À mettre dans le dépôt GitHub lanceniBallo/taama-backend :
+
+  public/partenaire/   -> nouveau dossier (tous les fichiers)
+  src/index.js         -> remplace le fichier existant
+
+Railway redéploie tout seul après l'envoi sur GitHub.
+
+Adresse à donner aux partenaires :
+  https://taama-backend-production.up.railway.app/partenaire
+
+Installer sur le téléphone :
+  - Android (Chrome) : ouvrir l'adresse > menu ⋮ > « Installer l'application »
+  - iPhone (Safari)  : ouvrir l'adresse > bouton Partager > « Sur l'écran d'accueil »
+Installer sur l'ordinateur :
+  - Chrome ou Edge : ouvrir l'adresse > icône « Installer » dans la barre d'adresse
