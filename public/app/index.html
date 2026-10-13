@@ -149,20 +149,20 @@
   document.getElementById("tr-go").addEventListener("click", function () {
     try { localStorage.setItem("taama_role", choice); } catch (e) {}
     if (choice === "partner") location.replace("/partenaire/");
-    else box.hidden = true;
+    else { box.hidden = true; document.body.classList.remove("role-open"); }
   });
   // Retour à l'écran de choix (bouton ← de l'écran de connexion)
   window.taamaShowRoleChooser = function () {
     try { localStorage.removeItem("taama_role"); } catch (e) {}
     select("client");
-    box.hidden = false;
+    box.hidden = false; document.body.classList.add("role-open");
   };
 
   var role = null, hasClient = false;
   try { role = localStorage.getItem("taama_role"); hasClient = !!localStorage.getItem("taama_client_token"); } catch (e) {}
   if (role === "partner") { location.replace("/partenaire/"); return; }
   if (role === "client" || hasClient) return;
-  box.hidden = false;
+  box.hidden = false; document.body.classList.add("role-open");
 })();
 </script>
 
@@ -2293,21 +2293,36 @@ ReactDOM.createRoot(document.getElementById('root')).render(<TaamaApp />);
 </script>
 <!-- ============ Installation (téléphone / ordinateur) ============ -->
 <style>
-  #taama-install { position: fixed; left: 50%; bottom: 16px; transform: translateX(-50%); z-index: 9999;
-    width: calc(100% - 32px); max-width: 420px; background: #0A1F3D; color: #F0ECE1; border: 1px solid #C08A3E;
-    border-radius: 14px; padding: 12px 14px; box-shadow: 0 10px 30px rgba(0,0,0,.35);
-    font-family: 'Work Sans', system-ui, sans-serif; font-size: 12.5px; line-height: 1.45; }
+  /* Bandeau d'installation : compact, en haut de la première page */
+  #taama-install { position: fixed; left: 50%; top: max(10px, calc(env(safe-area-inset-top) + 6px)); transform: translateX(-50%); z-index: 10001;
+    width: calc(100% - 24px); max-width: 440px; background: #0A1F3D; color: #F0ECE1; border: 1px solid #C08A3E;
+    border-radius: 14px; padding: 9px 10px 9px 12px; box-shadow: 0 10px 30px rgba(0,0,0,.4);
+    font-family: 'Work Sans', system-ui, sans-serif; font-size: 12.5px; line-height: 1.45; box-sizing: border-box; }
+  #taama-install[hidden] { display: none; }
   #taama-install b { color: #E8CD7A; }
-  #taama-install .ti-row { display: flex; justify-content: space-between; align-items: center; gap: 8px; }
-  #taama-install .ti-title { font-weight: 700; font-size: 13.5px; color: #E8CD7A; }
-  #taama-install .ti-close { background: none; border: none; color: #9AA6BD; font-size: 18px; cursor: pointer; padding: 0 4px; }
-  #taama-install .ti-btn { margin-top: 9px; width: 100%; background: #C08A3E; color: #0A1F3D; border: none; border-radius: 10px;
-    padding: 10px 0; font-weight: 800; font-size: 13.5px; cursor: pointer; }
+  #taama-install .ti-row { display: flex; align-items: center; gap: 10px; }
+  #taama-install .ti-ico { width: 34px; height: 34px; border-radius: 50%; background: #fff; flex-shrink: 0; }
+  #taama-install .ti-title { flex: 1; font-weight: 700; font-size: 13.5px; color: #fff; line-height: 1.25; }
+  #taama-install .ti-title small { display: block; font-weight: 500; font-size: 11.5px; color: #9AA6BD; }
+  #taama-install .ti-btn { background: #D4AF37; color: #0A1F3D; border: none; border-radius: 999px; padding: 8px 14px; font-weight: 800; font-size: 13px; cursor: pointer; flex-shrink: 0; }
+  #taama-install .ti-close { background: none; border: none; color: #9AA6BD; font-size: 20px; cursor: pointer; padding: 0 2px; flex-shrink: 0; }
+  #taama-install #ti-text { margin-top: 8px; }
+  /* Sur les autres pages : le bandeau passe en bas, sans cacher le contenu */
+  body.has-install:not(.role-open) #taama-install { top: auto; bottom: max(10px, calc(env(safe-area-inset-bottom) + 6px)); }
+  body.has-install:not(.role-open) { padding-bottom: calc(var(--inst-h, 56px) + 24px); }
+  body.has-install #taama-role .tr-wrap { padding-top: calc(var(--inst-h, 56px) + 26px); }
+  body.has-install #taama-role .tr-logo { width: 64px; height: 64px; }
+  body.has-install #taama-role .tr-brand { font-size: 22px; }
+  body.has-install #taama-role h1 { margin-top: 18px; }
 </style>
 <div id="taama-install" hidden>
-  <div class="ti-row"><span class="ti-title">📲 Installer l'application Taama</span><button class="ti-close" id="ti-close" aria-label="Fermer">×</button></div>
-  <div id="ti-text" style="margin-top:4px"></div>
-  <button class="ti-btn" id="ti-btn" hidden>Installer l'application</button>
+  <div class="ti-row">
+    <img class="ti-ico" src="icon-192.png" alt="">
+    <span class="ti-title">Installer l'application Taama<small>Accès rapide depuis l'écran d'accueil</small></span>
+    <button class="ti-btn" id="ti-btn" type="button">Installer</button>
+    <button class="ti-close" id="ti-close" type="button" aria-label="Fermer">×</button>
+  </div>
+  <div id="ti-text" hidden></div>
 </div>
 <script>
 (function () {
@@ -2317,28 +2332,36 @@ ReactDOM.createRoot(document.getElementById('root')).render(<TaamaApp />);
   var box = document.getElementById("taama-install"), text = document.getElementById("ti-text"), btn = document.getElementById("ti-btn");
   var installed = window.matchMedia("(display-mode: standalone)").matches || window.navigator.standalone;
   var dismissed = false;
-  try { dismissed = localStorage.getItem("taama_install_dismissed") === "1"; } catch (e) {}
+  // La croix ne cache le bandeau que jusqu'à la prochaine ouverture de l'application
+  try { dismissed = sessionStorage.getItem("taama_install_dismissed") === "1"; } catch (e) {}
   if (installed || dismissed || location.protocol === "file:") return;
+  function fit() { document.documentElement.style.setProperty("--inst-h", box.offsetHeight + "px"); }
+  function showBox() { box.hidden = false; document.body.classList.add("has-install"); fit(); }
+  function hideBox() { box.hidden = true; document.body.classList.remove("has-install"); }
+  window.addEventListener("resize", function () { if (!box.hidden) fit(); });
   var ua = navigator.userAgent;
   var isIOS = /iPhone|iPad|iPod/.test(ua) || (navigator.platform === "MacIntel" && navigator.maxTouchPoints > 1);
   var isAndroid = /Android/.test(ua);
-  if (isIOS) text.innerHTML = "Dans <b>Safari</b>, touchez <b>Partager</b> puis <b>« Sur l'écran d'accueil »</b>.";
-  else if (isAndroid) text.innerHTML = "Touchez le bouton ci-dessous, ou le menu <b>⋮</b> de Chrome puis <b>« Installer l'application »</b>.";
-  else text.innerHTML = "Cliquez sur le bouton ci-dessous, ou sur l'icône <b>Installer</b> dans la barre d'adresse.";
-  setTimeout(function () { box.hidden = false; }, 1500);
+  if (isIOS) text.innerHTML = "Dans <b>Safari</b>, touchez <b>Partager</b> (carré avec une flèche) puis <b>« Sur l'écran d'accueil »</b>.";
+  else if (isAndroid) text.innerHTML = "Ouvrez le menu <b>⋮</b> de Chrome, puis touchez <b>« Installer l'application »</b> ou <b>« Ajouter à l'écran d'accueil »</b>.";
+  else text.innerHTML = "Cliquez sur l'icône <b>Installer</b> dans la barre d'adresse du navigateur.";
+  showBox(); // dès l'ouverture, sur la première page
   var deferred = null;
-  window.addEventListener("beforeinstallprompt", function (e) { e.preventDefault(); deferred = e; btn.hidden = false; });
+  window.addEventListener("beforeinstallprompt", function (e) { e.preventDefault(); deferred = e; });
   btn.addEventListener("click", function () {
-    if (!deferred) return;
-    deferred.prompt();
-    deferred.userChoice.then(function (c) { if (c && c.outcome === "accepted") box.hidden = true; }).catch(function () {});
-    deferred = null; btn.hidden = true;
+    if (deferred) { // Android / ordinateur : fenêtre d'installation du téléphone
+      deferred.prompt();
+      deferred.userChoice.then(function (c) { if (c && c.outcome === "accepted") hideBox(); }).catch(function () {});
+      deferred = null;
+    } else { // iPhone, ou navigateur sans installation automatique : on explique
+      text.hidden = !text.hidden; fit();
+    }
   });
   document.getElementById("ti-close").addEventListener("click", function () {
-    box.hidden = true;
-    try { localStorage.setItem("taama_install_dismissed", "1"); } catch (e) {}
+    hideBox();
+    try { sessionStorage.setItem("taama_install_dismissed", "1"); } catch (e) {}
   });
-  window.addEventListener("appinstalled", function () { box.hidden = true; });
+  window.addEventListener("appinstalled", function () { hideBox(); });
 })();
 </script>
 </body>

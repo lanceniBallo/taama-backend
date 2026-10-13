@@ -257,6 +257,11 @@
     }
     .statusbar { display: none; }
   }
+  /* Pas de fausse barre d'état : le téléphone affiche déjà la sienne */
+  .statusbar { display: none !important; }
+  .screen { padding-top: env(safe-area-inset-top); }
+  /* L'installation se fait depuis la première page de l'application Taama */
+  #install-box { display: none !important; }
 </style>
 </head>
 <body>
