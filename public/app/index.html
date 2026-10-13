@@ -133,28 +133,36 @@
 </div>
 <script>
 (function () {
-  var role = null, hasClient = false;
-  try { role = localStorage.getItem("taama_role"); hasClient = !!localStorage.getItem("taama_client_token"); } catch (e) {}
-  if (role === "partner") { location.replace("/partenaire/"); return; }
   var box = document.getElementById("taama-role");
-  if (role === "client" || hasClient) return;
-  box.hidden = false;
   var choice = "client";
   var hints = { client: "Réserver un bus, un vol, un hôtel, une voiture, un taxi…",
                 partner: "Hôtel, transport, agence… : gérer mes offres, réservations et revenus" };
   var cards = box.querySelectorAll(".tr-card");
+  function select(role) {
+    choice = role;
+    Array.prototype.forEach.call(cards, function (x) { x.classList.toggle("sel", x.getAttribute("data-role") === role); });
+    document.getElementById("tr-hint").textContent = hints[role];
+  }
   Array.prototype.forEach.call(cards, function (c) {
-    c.addEventListener("click", function () {
-      choice = c.getAttribute("data-role");
-      Array.prototype.forEach.call(cards, function (x) { x.classList.toggle("sel", x === c); });
-      document.getElementById("tr-hint").textContent = hints[choice];
-    });
+    c.addEventListener("click", function () { select(c.getAttribute("data-role")); });
   });
   document.getElementById("tr-go").addEventListener("click", function () {
     try { localStorage.setItem("taama_role", choice); } catch (e) {}
     if (choice === "partner") location.href = "/partenaire/";
     else box.hidden = true;
   });
+  // Retour à l'écran de choix (bouton ← de l'écran de connexion)
+  window.taamaShowRoleChooser = function () {
+    try { localStorage.removeItem("taama_role"); } catch (e) {}
+    select("client");
+    box.hidden = false;
+  };
+
+  var role = null, hasClient = false;
+  try { role = localStorage.getItem("taama_role"); hasClient = !!localStorage.getItem("taama_client_token"); } catch (e) {}
+  if (role === "partner") { location.replace("/partenaire/"); return; }
+  if (role === "client" || hasClient) return;
+  box.hidden = false;
 })();
 </script>
 
@@ -354,7 +362,14 @@ function Login({ onLoggedIn }) {
   };
 
   return (
-    <div className="pb-8 px-5 pt-16 flex flex-col items-center text-center">
+    <div className="pb-8 px-5 pt-6 flex flex-col items-center text-center">
+      <button
+        type="button"
+        onClick={() => window.taamaShowRoleChooser && window.taamaShowRoleChooser()}
+        aria-label="Retour au choix du profil"
+        className="self-start mb-6"
+        style={{ color: "#FFFFFF", fontSize: 26, lineHeight: 1, background: "none", border: "none", padding: "6px 4px", cursor: "pointer" }}
+      >←</button>
       <div className="mb-8">
         <div style={{ fontWeight: 700, fontSize: 24, color: "#FFFFFF" }}>Connexion</div>
         <div style={{ fontSize: 14, color: "#9AA6BD", marginTop: 6 }}>Entrez vos informations pour réserver</div>

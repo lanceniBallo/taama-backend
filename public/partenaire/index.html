@@ -267,6 +267,7 @@
   <div class="screen active" id="screen-select">
     <div class="statusbar"><span id="clock">09:41</span><span>●●●● Taama</span></div>
     <div class="header">
+      <a href="/app/" id="back-to-choice" aria-label="Retour au choix du profil" style="display:inline-block;color:#fff;font-size:26px;line-height:1;text-decoration:none;margin-bottom:10px">←</a>
       <h1>Espace Partenaire</h1>
       <p>Sélectionnez votre secteur d'activité</p>
     </div>
@@ -1331,6 +1332,9 @@ if ("serviceWorker" in navigator) {
 })();
 </script>
 <script>
+document.getElementById("back-to-choice").addEventListener("click", function () {
+  try { localStorage.removeItem("taama_role"); } catch (e) {} // l'app Taama réaffichera « Quel est votre profil ? »
+});
 document.getElementById("go-client").addEventListener("click", function () {
   try { localStorage.setItem("taama_role", "client"); } catch (e) {}
 });
