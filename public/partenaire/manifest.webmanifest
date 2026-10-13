@@ -3,10 +3,10 @@
   "short_name": "Taama Pro",
   "description": "Espace partenaire Taama : réservations, offres et revenus.",
   "start_url": "/partenaire/",
-  "scope": "/partenaire/",
+  "scope": "/",
   "display": "standalone",
   "orientation": "any",
-  "background_color": "#FFFFFF",
+  "background_color": "#0A1F3D",
   "theme_color": "#0A1F3D",
   "lang": "fr",
   "icons": [

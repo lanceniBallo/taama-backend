@@ -3,10 +3,10 @@
   "short_name": "Taama",
   "description": "Réservez bus, vols, hôtels, véhicules, taxis et assurances au Mali.",
   "start_url": "/app/",
-  "scope": "/app/",
+  "scope": "/",
   "display": "standalone",
   "orientation": "portrait",
-  "background_color": "#FFFFFF",
+  "background_color": "#0A1F3D",
   "theme_color": "#0A1F3D",
   "lang": "fr",
   "icons": [

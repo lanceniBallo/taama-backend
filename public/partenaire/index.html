@@ -282,7 +282,6 @@
       <button class="install-btn" id="install-btn" hidden>Installer l'application</button>
       <div class="install-link">Lien à partager : <b id="install-url"></b></div>
     </div>
-    <a href="/app/" id="go-client" style="display:block;text-align:center;margin:18px 0 28px;color:var(--gold-soft);font-size:14px;text-decoration:none">Vous êtes un particulier ? Ouvrir l'application Taama →</a>
   </div>
 
   <!-- LOGIN -->
@@ -1335,9 +1334,7 @@ if ("serviceWorker" in navigator) {
 document.getElementById("back-to-choice").addEventListener("click", function () {
   try { localStorage.removeItem("taama_role"); } catch (e) {} // l'app Taama réaffichera « Quel est votre profil ? »
 });
-document.getElementById("go-client").addEventListener("click", function () {
-  try { localStorage.setItem("taama_role", "client"); } catch (e) {}
-});
+
 </script>
 </body>
 </html>

@@ -148,7 +148,7 @@
   });
   document.getElementById("tr-go").addEventListener("click", function () {
     try { localStorage.setItem("taama_role", choice); } catch (e) {}
-    if (choice === "partner") location.href = "/partenaire/";
+    if (choice === "partner") location.replace("/partenaire/");
     else box.hidden = true;
   });
   // Retour à l'écran de choix (bouton ← de l'écran de connexion)
