@@ -8,7 +8,8 @@ const router = express.Router();
 const otpLimit = rateLimit({ windowMs: 10 * 60 * 1000, max: 5, keyFn: (req) => `${req.ip}:${req.body?.phone || ''}` });
 
 function signUserToken(user) {
-  return jwt.sign({ userId: user.id, phone: user.phone, role: 'user' }, process.env.JWT_SECRET, { expiresIn: '24h' });
+  // Le client reste connecté jusqu'à ce qu'il se déconnecte (jeton d'un an)
+  return jwt.sign({ userId: user.id, phone: user.phone, role: 'user' }, process.env.JWT_SECRET, { expiresIn: '365d' });
 }
 
 router.post('/request-otp', otpLimit, async (req, res) => {

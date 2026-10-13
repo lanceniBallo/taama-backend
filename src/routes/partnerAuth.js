@@ -31,7 +31,7 @@ router.post("/partner-login", rateLimit({ windowMs: 10 * 60 * 1000, max: 10, key
     const token = jwt.sign(
       { role: "partner", partner_id: partner.id, partner_type: partner.type },
       process.env.JWT_SECRET,
-      { expiresIn: "30d" }
+      { expiresIn: "365d" } // reste connecté jusqu'à la déconnexion (ou désactivation par l'admin)
     );
 
     res.json({
