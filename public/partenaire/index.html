@@ -1022,8 +1022,11 @@ async function loadWithdrawSection() {
     });
     const balData = await balRes.json();
     const balEl = document.getElementById("withdraw-balance");
-    if (balEl) balEl.textContent = money(balData.available_balance || 0);
-  } catch (e) {}
+    if (balEl) balEl.textContent = balRes.ok ? money(balData.available_balance || 0) : "Indisponible pour le moment";
+  } catch (e) {
+    const balEl = document.getElementById("withdraw-balance");
+    if (balEl) balEl.textContent = "Indisponible pour le moment";
+  }
 
   try {
     const histRes = await fetch(`${API_BASE}/partner/withdrawals`, {
@@ -1047,24 +1050,29 @@ async function loadWithdrawSection() {
 
 document.addEventListener("click", async (e) => {
   if (e.target && e.target.id === "withdraw-btn") {
-    const balEl = document.getElementById("withdraw-balance");
     const amountStr = prompt("Montant à retirer (FCFA) ?");
     if (!amountStr) return;
     const amount = Number(amountStr.replace(/[^\d]/g, ""));
     if (!amount || amount <= 0) { alert("Montant invalide."); return; }
+    const saved = localStorage.getItem("taama_partner_payphone") || "";
+    const phone = (prompt("Numéro Orange Money pour recevoir le paiement ?", saved) || "").trim();
+    if (!phone) return;
+    localStorage.setItem("taama_partner_payphone", phone);
+    let res;
     try {
-      const res = await fetch(`${API_BASE}/partner/withdrawals`, {
+      res = await fetch(`${API_BASE}/partner/withdrawals`, {
         method: "POST",
         headers: { "Content-Type": "application/json", "Authorization": `Bearer ${state.token}` },
-        body: JSON.stringify({ amount_fcfa: amount }),
+        body: JSON.stringify({ amount_fcfa: amount, account_reference: phone }),
       });
-      const data = await res.json();
-      if (!res.ok) { alert(data.error || "Erreur lors de la demande."); return; }
-      alert("Demande de retrait envoyée. Elle sera traitée par Taama.");
-      loadWithdrawSection();
     } catch (err) {
-      alert("Erreur réseau, réessaie plus tard.");
+      alert("Pas de connexion internet, réessaie plus tard.");
+      return;
     }
+    const data = await res.json().catch(() => ({}));
+    if (!res.ok) { alert(data.error || `Erreur lors de la demande (code ${res.status}).`); return; }
+    alert("Demande de retrait envoyée. Elle sera traitée par Taama.");
+    loadWithdrawSection();
   }
 });
 

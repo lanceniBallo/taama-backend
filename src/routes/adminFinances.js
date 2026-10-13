@@ -124,7 +124,9 @@ router.get("/withdrawals", requireAdmin, async (req, res) => {
     await ensureWithdrawalsTable();
     const result = await pool.query(`
       SELECT w.id, w.amount_fcfa, w.status, w.note, w.requested_at, w.processed_at,
-             p.id AS partner_id, p.name AS partner_name, p.type AS partner_type
+             p.id AS partner_id,
+             p.name || COALESCE(' · ' || w.note, '') AS partner_name, -- affiche le numéro de paiement dans l'admin
+             p.type AS partner_type
       FROM withdrawals w
       JOIN partners p ON p.id = w.partner_id
       ORDER BY w.requested_at DESC
