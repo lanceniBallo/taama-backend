@@ -57,7 +57,7 @@
   #taama-role .tr-sub { color: #9AA6BD; font-size: 15px; line-height: 1.5; margin: 0; }
   #taama-role .tr-cards { display: grid; grid-template-columns: 1fr 1fr; gap: 12px; margin: 28px 0 16px; }
   #taama-role .tr-card { background: rgba(255,255,255,.05); border: 2px solid rgba(154,166,189,.35); border-radius: 22px;
-    padding: 14px 10px 18px; text-align: center; cursor: pointer; color: #fff; font: inherit; transition: border-color .15s, background .15s, transform .1s; }
+    padding: 14px 10px 18px; text-align: center; cursor: pointer; color: #fff; font: inherit; -webkit-tap-highlight-color: transparent; outline: none; }
   #taama-role .tr-card:active { transform: scale(.98); }
   #taama-role .tr-card.sel { border-color: #D4AF37; background: rgba(212,175,55,.10); }
   #taama-role .tr-card svg { width: 100%; height: auto; max-height: 118px; display: block; }
@@ -149,13 +149,14 @@
   document.getElementById("tr-go").addEventListener("click", function () {
     try { localStorage.setItem("taama_role", choice); } catch (e) {}
     if (choice === "partner") location.replace("/partenaire/");
-    else { box.hidden = true; document.body.classList.remove("role-open"); }
+    else { box.hidden = true; document.body.classList.remove("role-open"); window.dispatchEvent(new Event("taama-role-change")); }
   });
   // Retour à l'écran de choix (bouton ← de l'écran de connexion)
   window.taamaShowRoleChooser = function () {
     try { localStorage.removeItem("taama_role"); } catch (e) {}
     select("client");
     box.hidden = false; document.body.classList.add("role-open");
+    window.dispatchEvent(new Event("taama-role-change"));
   };
 
   var role = null, hasClient = false;
@@ -2307,9 +2308,6 @@ ReactDOM.createRoot(document.getElementById('root')).render(<TaamaApp />);
   #taama-install .ti-btn { background: #D4AF37; color: #0A1F3D; border: none; border-radius: 999px; padding: 8px 14px; font-weight: 800; font-size: 13px; cursor: pointer; flex-shrink: 0; }
   #taama-install .ti-close { background: none; border: none; color: #9AA6BD; font-size: 20px; cursor: pointer; padding: 0 2px; flex-shrink: 0; }
   #taama-install #ti-text { margin-top: 8px; }
-  /* Sur les autres pages : le bandeau passe en bas, sans cacher le contenu */
-  body.has-install:not(.role-open) #taama-install { top: auto; bottom: max(10px, calc(env(safe-area-inset-bottom) + 6px)); }
-  body.has-install:not(.role-open) { padding-bottom: calc(var(--inst-h, 56px) + 24px); }
   body.has-install #taama-role .tr-wrap { padding-top: calc(var(--inst-h, 56px) + 26px); }
   body.has-install #taama-role .tr-logo { width: 64px; height: 64px; }
   body.has-install #taama-role .tr-brand { font-size: 22px; }
@@ -2331,10 +2329,9 @@ ReactDOM.createRoot(document.getElementById('root')).render(<TaamaApp />);
   }
   var box = document.getElementById("taama-install"), text = document.getElementById("ti-text"), btn = document.getElementById("ti-btn");
   var installed = window.matchMedia("(display-mode: standalone)").matches || window.navigator.standalone;
-  var dismissed = false;
-  // La croix ne cache le bandeau que jusqu'à la prochaine ouverture de l'application
-  try { dismissed = sessionStorage.getItem("taama_install_dismissed") === "1"; } catch (e) {}
-  if (installed || dismissed || location.protocol === "file:") return;
+  // Tant que l'application n'est pas installée, le bandeau revient à chaque
+  // ouverture, actualisation ou retour à l'accueil. Une fois installée : plus jamais.
+  if (installed || location.protocol === "file:") return;
   function fit() { document.documentElement.style.setProperty("--inst-h", box.offsetHeight + "px"); }
   function showBox() { box.hidden = false; document.body.classList.add("has-install"); fit(); }
   function hideBox() { box.hidden = true; document.body.classList.remove("has-install"); }
@@ -2345,7 +2342,10 @@ ReactDOM.createRoot(document.getElementById('root')).render(<TaamaApp />);
   if (isIOS) text.innerHTML = "Dans <b>Safari</b>, touchez <b>Partager</b> (carré avec une flèche) puis <b>« Sur l'écran d'accueil »</b>.";
   else if (isAndroid) text.innerHTML = "Ouvrez le menu <b>⋮</b> de Chrome, puis touchez <b>« Installer l'application »</b> ou <b>« Ajouter à l'écran d'accueil »</b>.";
   else text.innerHTML = "Cliquez sur l'icône <b>Installer</b> dans la barre d'adresse du navigateur.";
-  showBox(); // dès l'ouverture, sur la première page
+  function onHome() { return document.body.classList.contains("role-open"); }
+  function refresh() { if (onHome()) { text.hidden = true; showBox(); } else hideBox(); }
+  refresh(); // dès l'ouverture, sur la page d'accueil
+  window.addEventListener("taama-role-change", refresh);
   var deferred = null;
   window.addEventListener("beforeinstallprompt", function (e) { e.preventDefault(); deferred = e; });
   btn.addEventListener("click", function () {
@@ -2358,10 +2358,9 @@ ReactDOM.createRoot(document.getElementById('root')).render(<TaamaApp />);
     }
   });
   document.getElementById("ti-close").addEventListener("click", function () {
-    hideBox();
-    try { sessionStorage.setItem("taama_install_dismissed", "1"); } catch (e) {}
+    hideBox(); // reviendra au prochain retour à l'accueil
   });
-  window.addEventListener("appinstalled", function () { hideBox(); });
+  window.addEventListener("appinstalled", function () { installed = true; hideBox(); window.removeEventListener("taama-role-change", refresh); });
 })();
 </script>
 </body>
