@@ -19,11 +19,16 @@ function optionalPartner(req, res, next) {
 
 // Les vols existent sous deux noms selon les versions ('airline' et 'flight') :
 // on accepte les deux et on renvoie les deux.
-const TYPE_ALIASES = { airline: ['airline', 'flight'], flight: ['airline', 'flight'] };
+// Même service, plusieurs noms selon l'app qui a créé l'offre : on les regroupe.
+const GROUPS = [['airline', 'flight'], ['ticket', 'bus'], ['vehicle', 'car_rental'], ['real_estate', 'apartment']];
+const TYPE_ALIASES = Object.fromEntries(GROUPS.flatMap((g) => g.map((t) => [t, g])));
 
 // Seules les offres actives d'un partenaire actif sont montrées aux clients
 // (sinon le client voit une offre qu'il ne peut pas réserver).
 const VISIBLE = `l.is_active = TRUE AND (p.id IS NULL OR p.is_active = TRUE)`;
+// Liste publique : uniquement les offres d'un vrai partenaire actif, validées par l'admin
+// (les offres en attente de validation ou refusées ne sont pas montrées aux clients).
+const LISTED = `l.is_active = TRUE AND p.is_active = TRUE AND COALESCE(l.status, 'validee') = 'validee'`;
 
 router.get('/', async (req, res) => {
   try {
@@ -31,8 +36,8 @@ router.get('/', async (req, res) => {
     if (type && !TYPES.has(type) && !TYPE_ALIASES[type]) return res.status(400).json({ error: 'Type d’offre invalide' });
     const types = type ? (TYPE_ALIASES[type] || [type]) : null;
     const q = types
-      ? { text: `SELECT l.* FROM listings l LEFT JOIN partners p ON p.id = l.partner_id WHERE ${VISIBLE} AND l.type = ANY($1) ORDER BY l.created_at DESC`, values: [types] }
-      : { text: `SELECT l.* FROM listings l LEFT JOIN partners p ON p.id = l.partner_id WHERE ${VISIBLE} ORDER BY l.created_at DESC`, values: [] };
+      ? { text: `SELECT l.*, p.name AS partner_name FROM listings l JOIN partners p ON p.id = l.partner_id WHERE ${LISTED} AND l.type = ANY($1) ORDER BY l.created_at DESC`, values: [types] }
+      : { text: `SELECT l.*, p.name AS partner_name FROM listings l JOIN partners p ON p.id = l.partner_id WHERE ${LISTED} ORDER BY l.created_at DESC`, values: [] };
     return res.json((await pool.query(q)).rows);
   } catch (err) { console.error(err.message); return res.status(500).json({ error: 'Erreur serveur' }); }
 });
