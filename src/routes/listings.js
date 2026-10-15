@@ -64,6 +64,10 @@ async function createListing(req, res) {
   try {
     const partner = await pool.query('SELECT id,type,is_active FROM partners WHERE id=$1', [partner_id]);
     if (!partner.rows[0] || !partner.rows[0].is_active) return res.status(400).json({ error: 'Partenaire invalide ou inactif' });
+    // L'offre prend toujours le secteur du partenaire (évite un vol rangé dans les bus, etc.)
+    const EXPECTED = { airline: 'airline', flight: 'airline', bus: 'ticket', ticket: 'ticket', hotel: 'hotel', car_rental: 'vehicle', vehicle: 'vehicle', real_estate: 'real_estate', apartment: 'real_estate', insurance: 'insurance', taxi: 'taxi' };
+    const expected = EXPECTED[partner.rows[0].type];
+    if (expected && !(TYPE_ALIASES[expected] || [expected]).includes(type)) type = expected;
     const result = await pool.query(`INSERT INTO listings (partner_id,type,title,subtitle,description,price_fcfa,icon,accent_color,image_url,metadata) VALUES ($1,$2,$3,$4,$5,$6,$7,$8,$9,$10) RETURNING *`, [partner_id,type,String(title).trim(),subtitle||null,description||null,Number(price_fcfa),icon||null,accent_color||null,image_url||null,metadata && typeof metadata === 'object' ? metadata : {}]);
     return res.status(201).json(result.rows[0]);
   } catch (err) { console.error('create listing:', err.message); return res.status(500).json({ error: 'Erreur serveur' }); }
