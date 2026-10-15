@@ -2,7 +2,7 @@ const express = require('express');
 const jwt = require('jsonwebtoken');
 const crypto = require('crypto');
 const pool = require('../db');
-const { splitAmount } = require('../utils/finance');
+const { splitAmount, getLiveCommissionRate } = require('../utils/finance');
 const { requireEnv, safeEqual } = require('../middleware/security');
 const { notifyPartner } = require('../utils/push');
 
@@ -16,7 +16,7 @@ function requireAuth(req,res,next){
 function makeReference(){ return 'TM-' + crypto.randomBytes(5).toString('hex').toUpperCase(); }
 
 router.get('/', requireAuth, async(req,res)=>{
-  try{ const {rows}=await pool.query(`SELECT b.*,l.title,l.subtitle,l.icon,l.accent_color FROM bookings b JOIN listings l ON l.id=b.listing_id WHERE b.user_id=$1 ORDER BY b.created_at DESC`,[req.user.userId]); return res.json(rows); }
+  try{ const {rows}=await pool.query(`SELECT b.*,l.title,l.subtitle,l.icon,l.accent_color,l.type AS listing_type,l.metadata AS listing_metadata,p.name AS partner_name FROM bookings b JOIN listings l ON l.id=b.listing_id LEFT JOIN partners p ON p.id=l.partner_id WHERE b.user_id=$1 ORDER BY b.created_at DESC`,[req.user.userId]); return res.json(rows); }
   catch(err){console.error(err.message);return res.status(500).json({error:'Erreur serveur'});}
 });
 
@@ -28,7 +28,7 @@ router.post('/', requireAuth, async(req,res)=>{
     const listing=rows[0];
     if(!listing)return res.status(404).json({error:'Offre introuvable ou inactive'});
     if(!Number.isInteger(Number(listing.price_fcfa))||Number(listing.price_fcfa)<0)return res.status(400).json({error:'Prix invalide'});
-    const {rate,commission,partnerAmount}=splitAmount(listing.price_fcfa,listing.type);
+    const {rate,commission,partnerAmount}=splitAmount(listing.price_fcfa,listing.type,await getLiveCommissionRate(listing.type));
     const client=await pool.connect();
     try{
       await client.query('BEGIN');

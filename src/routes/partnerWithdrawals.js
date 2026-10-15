@@ -29,7 +29,7 @@ async function balanceOf(db, partnerId) {
   const { rows } = await db.query(`
     WITH revenue AS (
       SELECT b.price_fcfa,
-             ROUND(b.price_fcfa * COALESCE(cr.rate_percent, 10.00) / 100.0) AS commission_fcfa
+             COALESCE(NULLIF(b.commission_fcfa, 0), ROUND(b.price_fcfa * COALESCE(cr.rate_percent, 10.00) / 100.0)) AS commission_fcfa
       FROM bookings b
       JOIN listings l ON l.id = b.listing_id
       LEFT JOIN commission_rates cr ON cr.type = l.type

@@ -11,10 +11,12 @@ const partnerListingsRoutes=require('./routes/partnerListings');
 const adminBookingsRoutes = require('./routes/adminBookings');
 const adminFinancesRoutes = require('./routes/adminFinances');
 const adminListingsRoutes = require('./routes/adminListings');
+const adminSettingsRoutes = require('./routes/adminSettings');
 const adminPartnersRoutes=require('./routes/adminPartners');
 const financeRoutes=require('./routes/finance');
 const partnerFinanceRoutes=require('./routes/partnerFinance');
 const partnerPushRoutes=require('./routes/partnerPush');
+const userPushRoutes=require('./routes/userPush');
 const partnerWithdrawalsRoutes=require('./routes/partnerWithdrawals');
 const {rateLimit}=require('./middleware/security');
 
@@ -55,8 +57,10 @@ app.use('/partner', partnerListingsRoutes);
 app.use('/admin',adminPartnersRoutes);
 app.use('/admin', adminFinancesRoutes);
 app.use('/admin', adminListingsRoutes);
+app.use('/admin', adminSettingsRoutes); // Paramètres > Taux de commission
 app.use('/partner/finance',partnerFinanceRoutes);
 app.use('/partner',partnerPushRoutes);
+app.use('/me',userPushRoutes); // notifications des clients
 app.use('/partner',partnerWithdrawalsRoutes);
 
 app.use((err,req,res,next)=>{console.error('Unhandled error:',err.message);if(res.headersSent)return next(err);return res.status(500).json({error:'Erreur serveur'});});

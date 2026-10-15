@@ -36,7 +36,7 @@ const REVENUE_CTE = `
       l.partner_id,
       b.price_fcfa,
       COALESCE(cr.rate_percent, 10.00) AS rate_percent,
-      ROUND(b.price_fcfa * COALESCE(cr.rate_percent, 10.00) / 100.0) AS commission_fcfa
+      COALESCE(NULLIF(b.commission_fcfa, 0), ROUND(b.price_fcfa * COALESCE(cr.rate_percent, 10.00) / 100.0)) AS commission_fcfa
     FROM bookings b
     JOIN listings l ON l.id = b.listing_id
     LEFT JOIN commission_rates cr ON cr.type = l.type
