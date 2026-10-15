@@ -1,6 +1,7 @@
 const express = require('express');
 const pool = require('../db');
 const requirePartner = require('../middleware/requirePartner');
+const { notifyUser } = require('../utils/userPush');
 
 const router = express.Router();
 router.use(requirePartner);
@@ -19,7 +20,7 @@ async function updateBookingStatus(req,res,status) {
   const client = await pool.connect();
   try {
     await client.query('BEGIN');
-    const check = await client.query(`SELECT b.* FROM bookings b JOIN listings l ON l.id=b.listing_id WHERE b.id=$1 AND l.partner_id=$2 FOR UPDATE`, [req.params.id, req.partnerId]);
+    const check = await client.query(`SELECT b.*, l.title AS listing_title FROM bookings b JOIN listings l ON l.id=b.listing_id WHERE b.id=$1 AND l.partner_id=$2 FOR UPDATE OF b`, [req.params.id, req.partnerId]);
     const booking = check.rows[0];
     if (!booking) { await client.query('ROLLBACK'); return res.status(404).json({ error:'Réservation introuvable pour ce partenaire' }); }
     if (status === 'Confirmé' && booking.payment_status !== 'payé') { await client.query('ROLLBACK'); return res.status(409).json({ error:'Le paiement doit être confirmé avant la validation partenaire' }); }
@@ -30,6 +31,10 @@ async function updateBookingStatus(req,res,status) {
       await client.query(`INSERT INTO financial_ledger (booking_id,partner_id,kind,amount_fcfa,description) VALUES ($1,$2,'booking_rejected',0,$3)`, [booking.id, req.partnerId, `Réservation ${booking.reference} rejetée par le partenaire`]);
     }
     await client.query('COMMIT');
+    // Prévenir le client sur son téléphone
+    notifyUser(booking.user_id, status === 'Confirmé'
+      ? { title: 'Réservation validée ✅', body: `${booking.listing_title} · ${booking.reference} — votre reçu est disponible.`, url: `/app/?recu=${booking.reference}`, tag: booking.reference }
+      : { title: 'Réservation refusée', body: `${booking.listing_title} · ${booking.reference} — touchez pour voir le détail.`, url: '/app/', tag: booking.reference });
     return res.json(result.rows[0]);
   } catch (err) { await client.query('ROLLBACK'); console.error(err.message); return res.status(500).json({ error:'Erreur serveur' }); }
   finally { client.release(); }
