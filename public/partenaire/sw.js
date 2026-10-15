@@ -1,7 +1,7 @@
 // Taama Partenaire — service worker
 // Permet l'installation sur téléphone/ordinateur et garde l'écran de l'app en cache.
 // Les données (réservations, offres…) viennent toujours du serveur, jamais du cache.
-const CACHE = "taama-partenaire-v2";
+const CACHE = "taama-partenaire-v3";
 const SHELL = ["./", "./index.html", "./manifest.webmanifest", "./icon-192.png", "./icon-512.png"];
 
 self.addEventListener("install", (e) => {
@@ -33,7 +33,7 @@ self.addEventListener("push", (e) => {
   e.waitUntil(self.registration.showNotification(data.title || "Taama Pro — Nouvelle réservation", {
     body: data.body || "Un client vient de réserver. Ouvrez l'app pour confirmer.",
     icon: "icon-192.png",
-    badge: "icon-192.png",
+    badge: "badge-96.png", // petite icône de la barre d'état (Android l'affiche en une seule couleur)
     tag: "taama-booking",
     renotify: true,
     vibrate: [200, 100, 200, 100, 300],

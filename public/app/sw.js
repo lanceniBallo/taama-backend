@@ -1,7 +1,7 @@
 // Taama — service worker
 // Permet l'installation sur téléphone/ordinateur et garde l'écran de l'app en cache.
 // Les données (réservations, offres…) viennent toujours du serveur, jamais du cache.
-const CACHE = "taama-client-v2";
+const CACHE = "taama-client-v3";
 const SHELL = ["./", "./index.html", "./manifest.webmanifest", "./icon-192.png", "./icon-512.png"];
 
 self.addEventListener("install", (e) => {
@@ -34,7 +34,7 @@ self.addEventListener("push", (e) => {
   e.waitUntil(self.registration.showNotification(title, {
     body: data.body || "Ouvrez l'application pour voir le détail.",
     icon: "/app/icon-192.png",
-    badge: "/app/icon-192.png",
+    badge: "/app/badge-96.png",
     tag: data.tag || "taama-booking",
     vibrate: [200, 100, 200],
     data: { url: data.url || "/app/" },
