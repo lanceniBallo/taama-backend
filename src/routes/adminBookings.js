@@ -23,6 +23,8 @@ router.get("/bookings", requireAdmin, async (req, res) => {
         b.reference,
         b.status,
         b.price_fcfa,
+        b.commission_fcfa,
+        b.partner_amount_fcfa,
         b.payment_method,
         b.payment_status,
         b.created_at,
@@ -35,6 +37,7 @@ router.get("/bookings", requireAdmin, async (req, res) => {
 
         u.id AS user_id,
         u.full_name AS user_name,
+        u.phone AS user_phone,
         u.email AS user_email,
 
         l.id AS listing_id,
