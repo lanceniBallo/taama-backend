@@ -40,6 +40,10 @@
     100% { transform: translate(0, 0); }
   }
   .taxi-drive-icon { animation: taxiDrive 2.4s ease-in-out infinite; }
+  @media (min-width: 1024px) {
+    .dk-main .px-5 { padding-left: 0; padding-right: 0; }
+    .dk-main .mx-5 { margin-left: 0; margin-right: 0; }
+  }
 </style>
 </head>
 <body>
@@ -257,15 +261,60 @@ const MOTIF = (color) =>
 
 function TopBar({ title, onBack }) {
   return (
-    <div className="flex items-center gap-3 px-5 pt-6 pb-4">
+    <div className="flex items-center gap-3 px-5 pt-6 pb-4 lg:pt-10 lg:pb-6 lg:gap-4">
       {onBack && (
-        <button onClick={onBack} className="w-9 h-9 rounded-full flex items-center justify-center bg-white/70" style={{ color: "#1B2A4A" }}>
+        <button onClick={onBack} className="w-9 h-9 lg:w-11 lg:h-11 rounded-full flex items-center justify-center bg-white/70 hover:bg-white transition-colors" style={{ color: "#1B2A4A" }}>
           ←
         </button>
       )}
-      <h1 className="text-xl tracking-tight" style={{ fontFamily: "'Fraunces', serif", color: "#FFFFFF", fontWeight: 600 }}>
+      <h1 className="text-xl lg:text-3xl tracking-tight" style={{ fontFamily: "'Fraunces', serif", color: "#FFFFFF", fontWeight: 600 }}>
         {title}
       </h1>
+    </div>
+  );
+}
+
+const NAV_LINKS = [
+  { label: "Billets", to: "tickets" },
+  { label: "Taxi", to: "taxi" },
+  { label: "Location", to: "vehicles" },
+  { label: "Hôtels", to: "hotels" },
+  { label: "Assurance", to: "insurance" },
+];
+function TaamaLogo({ size }) {
+  return (
+    <div className="flex items-baseline gap-0.5">
+      <span style={{ fontFamily: "'Fraunces', serif", fontWeight: 700, fontSize: size, color: "#FFFFFF" }}>Taama</span>
+      <span style={{ fontFamily: "'Fraunces', serif", fontWeight: 700, fontSize: size, color: "#C08A3E" }}>.</span>
+    </div>
+  );
+}
+// Barre du haut, version ordinateur uniquement (cachée sur téléphone)
+function DesktopNav({ go, onLogout, current }) {
+  return (
+    <header className="hidden lg:block sticky top-0 z-20" style={{ background: "#0F1B31ee", backdropFilter: "blur(8px)", borderBottom: "1px solid #FFFFFF14" }}>
+      <div className="max-w-6xl mx-auto px-8 h-16 flex items-center gap-8">
+        <button onClick={() => go("home")} aria-label="Accueil"><TaamaLogo size={26} /></button>
+        <nav className="flex items-center gap-1 text-sm">
+          {NAV_LINKS.map((l) => (
+            <button key={l.to} onClick={() => go(l.to)} className="px-3 py-1.5 rounded-full transition-colors hover:text-white"
+              style={{ color: current === l.to ? "#FFFFFF" : "#FFFFFFb3", background: current === l.to ? "#FFFFFF14" : "transparent" }}>{l.label}</button>
+          ))}
+        </nav>
+        <div className="ml-auto flex items-center gap-3">
+          <button onClick={() => go("mybookings")} className="text-sm font-medium px-4 py-2 rounded-full" style={{ background: "#C08A3E", color: "#fff" }}>📋 Mes réservations</button>
+          <button onClick={onLogout} className="text-sm px-3 py-2 rounded-full" style={{ color: "#E08A7E" }}>Se déconnecter</button>
+        </div>
+      </div>
+    </header>
+  );
+}
+// Colonne de droite vide (ordinateur) tant qu'aucune recherche n'est lancée
+function DesktopEmpty({ emoji, text }) {
+  return (
+    <div className="hidden lg:flex flex-col items-center justify-center text-center rounded-3xl py-24 px-10" style={{ border: "1px dashed #FFFFFF26", color: "#FFFFFF99" }}>
+      <div className="text-5xl mb-4">{emoji}</div>
+      <div className="text-base" style={{ color: "#FFFFFFcc" }}>{text}</div>
     </div>
   );
 }
@@ -509,20 +558,7 @@ function Home({ go, bookings, onLogout, onReceipt }) {
 
       {/* ===================== ORDINATEUR ===================== */}
       <div className="hidden lg:block min-h-screen">
-        <header className="sticky top-0 z-20" style={{ background: "#0F1B31ee", backdropFilter: "blur(8px)", borderBottom: "1px solid #FFFFFF14" }}>
-          <div className="max-w-6xl mx-auto px-8 h-16 flex items-center gap-8">
-            <Logo size={26} />
-            <nav className="flex items-center gap-6 text-sm" style={{ color: "#FFFFFFcc" }}>
-              {SERVICES.slice(0, 5).map((sv) => (
-                <button key={sv.label} onClick={() => go(sv.to)} className="hover:text-white transition-colors">{sv.label}</button>
-              ))}
-            </nav>
-            <div className="ml-auto flex items-center gap-3">
-              <button onClick={() => go("mybookings")} className="text-sm font-medium px-4 py-2 rounded-full" style={{ background: "#C08A3E", color: "#fff" }}>📋 Mes réservations</button>
-              <button onClick={onLogout} className="text-sm px-3 py-2 rounded-full" style={{ color: "#E08A7E" }}>Se déconnecter</button>
-            </div>
-          </div>
-        </header>
+        <DesktopNav go={go} onLogout={onLogout} current="home" />
 
         <section className="max-w-6xl mx-auto px-8 pt-8">
           <Photo src="https://images.unsplash.com/photo-1436491865332-7a61a109cc05?auto=format&fit=crop&w=1800&q=70" fallbackColor="#1B2A4A" className="rounded-3xl h-[340px]">
@@ -635,6 +671,8 @@ function Tickets({ back, onBook }) {
   return (
     <div className="pb-8">
       <TopBar title="Billets" onBack={back} />
+      <div className="lg:grid lg:grid-cols-[380px_1fr] lg:gap-10 lg:items-start">
+      <div className="lg:sticky lg:top-24">
 
       <div className="px-5 grid grid-cols-2 gap-2 mb-1">
         <button onClick={() => switchMode("vol")} className="rounded-xl py-2.5 flex items-center justify-center gap-2 border"
@@ -727,9 +765,9 @@ function Tickets({ back, onBook }) {
             <div className="flex-1 min-w-0">
               <Field emoji="👥" label={mode === "vol" ? "Passagers" : "Places"}>
                 <div className="flex items-center gap-3">
-                  <button onClick={() => setPassengers(Math.max(1, passengers - 1))} className="w-6 h-6 rounded-full bg-black/5 text-sm">−</button>
+                  <button onClick={() => setPassengers(Math.max(1, passengers - 1))} className="w-6 h-6 rounded-full bg-black/5 text-sm" style={{ color: "#1B2A4A" }}>−</button>
                   <span className="text-sm" style={{ color: "#1B2A4A" }}>{passengers}</span>
-                  <button onClick={() => setPassengers(passengers + 1)} className="w-6 h-6 rounded-full bg-black/5 text-sm">+</button>
+                  <button onClick={() => setPassengers(passengers + 1)} className="w-6 h-6 rounded-full bg-black/5 text-sm" style={{ color: "#1B2A4A" }}>+</button>
                 </div>
               </Field>
             </div>
@@ -738,9 +776,9 @@ function Tickets({ back, onBook }) {
         {isRoundTrip && (
           <Field emoji="👥" label="Passagers">
             <div className="flex items-center gap-3">
-              <button onClick={() => setPassengers(Math.max(1, passengers - 1))} className="w-6 h-6 rounded-full bg-black/5 text-sm">−</button>
+              <button onClick={() => setPassengers(Math.max(1, passengers - 1))} className="w-6 h-6 rounded-full bg-black/5 text-sm" style={{ color: "#1B2A4A" }}>−</button>
               <span className="text-sm" style={{ color: "#1B2A4A" }}>{passengers}</span>
-              <button onClick={() => setPassengers(passengers + 1)} className="w-6 h-6 rounded-full bg-black/5 text-sm">+</button>
+              <button onClick={() => setPassengers(passengers + 1)} className="w-6 h-6 rounded-full bg-black/5 text-sm" style={{ color: "#1B2A4A" }}>+</button>
             </div>
           </Field>
         )}
@@ -749,17 +787,20 @@ function Tickets({ back, onBook }) {
         </button>
       </div>
 
+      </div>
+      <div>
+      {!searched && <DesktopEmpty emoji="🎫" text="Choisissez votre trajet et lancez la recherche : les bus et vols disponibles s'affichent ici." />}
       {searched && (
-        <div className="px-5 mt-6 flex flex-col gap-3">
-          <div className="text-xs uppercase tracking-wide" style={{ color: "#FFFFFF99" }}>
+        <div className="px-5 mt-6 lg:mt-0 flex flex-col gap-3 lg:grid lg:grid-cols-2 lg:gap-4">
+          <div className="text-xs uppercase tracking-wide lg:col-span-2" style={{ color: "#FFFFFF99" }}>
             {from} → {to} {isRoundTrip && `→ ${from}`} · {matching.length} {mode === "vol" ? "vol" : "trajet"}{matching.length > 1 ? "s" : ""} · {passengers} {passengers > 1 ? "places" : "place"}
           </div>
-          {loading && <div className="text-xs" style={{ color: "#FFFFFF99" }}>Chargement des offres…</div>}
+          {loading && <div className="text-xs lg:col-span-2" style={{ color: "#FFFFFF99" }}>Chargement des offres…</div>}
           {!loading && results.length === 0 && (
-            <div className="text-xs bg-white/10 rounded-xl p-4" style={{ color: "#FFFFFF99" }}>Aucune offre disponible pour le moment sur ce trajet.</div>
+            <div className="text-xs bg-white/10 rounded-xl p-4 lg:col-span-2" style={{ color: "#FFFFFF99" }}>Aucune offre disponible pour le moment sur ce trajet.</div>
           )}
           {!loading && results.length > 0 && matching.length === 0 && (
-            <div className="text-xs bg-white/10 rounded-xl p-4" style={{ color: "#FFFFFFcc" }}>
+            <div className="text-xs bg-white/10 rounded-xl p-4 lg:col-span-2" style={{ color: "#FFFFFFcc" }}>
               Aucun {mode === "vol" ? "vol" : "trajet"} {from} → {to} pour le moment. Voici les autres {mode === "vol" ? "vols" : "trajets"} disponibles :
             </div>
           )}
@@ -768,7 +809,7 @@ function Tickets({ back, onBook }) {
             return (
               <React.Fragment key={r.id || i}>
               {matching.length > 0 && others.length > 0 && i === matching.length && (
-                <div className="text-xs uppercase tracking-wide mt-3" style={{ color: "#FFFFFF99" }}>Autres {mode === "vol" ? "vols" : "trajets"} disponibles</div>
+                <div className="text-xs uppercase tracking-wide mt-3 lg:col-span-2" style={{ color: "#FFFFFF99" }}>Autres {mode === "vol" ? "vols" : "trajets"} disponibles</div>
               )}
               <div className="bg-white rounded-xl p-4 border border-black/5 flex items-center justify-between">
                 <div>
@@ -806,6 +847,8 @@ function Tickets({ back, onBook }) {
           })}
         </div>
       )}
+      </div>
+      </div>
     </div>
   );
 }
@@ -818,7 +861,7 @@ function ItemDetail({ item, back, onBook }) {
     <div className="pb-8">
       <TopBar title="Détail" onBack={back} />
       <div className="px-5">
-        <Photo src={item.photo} fallbackColor={item.accent} className="rounded-2xl h-48">
+        <Photo src={item.photo} fallbackColor={item.accent} className="rounded-2xl h-48 lg:h-80">
           <div className="h-full flex flex-col justify-end p-4">
             <div className="text-white text-lg" style={{ fontFamily: "'Fraunces', serif", fontWeight: 600 }}>{item.name}</div>
             <div className="text-white/80 text-xs mt-0.5">{item.zone}</div>
@@ -922,6 +965,8 @@ function Hotels({ back, onBook, onViewDetail }) {
   return (
     <div className="pb-8">
       <TopBar title="Hôtels" onBack={back} />
+      <div className="lg:grid lg:grid-cols-[380px_1fr] lg:gap-10 lg:items-start">
+      <div className="lg:sticky lg:top-24">
 
       <div className="px-5 grid grid-cols-2 gap-2 mb-1">
         <button onClick={() => { setMode("hotel"); setSearched(false); setResults([]); }} className="rounded-xl py-2.5 flex items-center justify-center gap-2 border"
@@ -948,23 +993,26 @@ function Hotels({ back, onBook, onViewDetail }) {
         </Field>
         <Field emoji="👥" label="Voyageurs">
           <div className="flex items-center gap-3">
-            <button onClick={() => setGuests(Math.max(1, guests - 1))} className="w-6 h-6 rounded-full bg-black/5 text-sm">−</button>
+            <button onClick={() => setGuests(Math.max(1, guests - 1))} className="w-6 h-6 rounded-full bg-black/5 text-sm" style={{ color: "#1B2A4A" }}>−</button>
             <span className="text-sm" style={{ color: "#1B2A4A" }}>{guests}</span>
-            <button onClick={() => setGuests(guests + 1)} className="w-6 h-6 rounded-full bg-black/5 text-sm">+</button>
+            <button onClick={() => setGuests(guests + 1)} className="w-6 h-6 rounded-full bg-black/5 text-sm" style={{ color: "#1B2A4A" }}>+</button>
           </div>
         </Field>
         <button onClick={doSearch} className="rounded-xl py-3 flex items-center justify-center gap-2 mt-2" style={{ background: accent }}>
           <span className="text-white text-sm font-medium">🔍 Rechercher</span>
         </button>
       </div>
+      </div>
+      <div>
+      {!searched && <DesktopEmpty emoji="🏨" text="Indiquez la ville et vos dates : les hôtels et appartements disponibles s'affichent ici." />}
       {searched && (
-        <div className="px-5 mt-6 flex flex-col gap-3">
-          <div className="text-xs uppercase tracking-wide" style={{ color: "#FFFFFF99" }}>
+        <div className="px-5 mt-6 lg:mt-0 flex flex-col gap-3 lg:grid lg:grid-cols-2 lg:gap-4">
+          <div className="text-xs uppercase tracking-wide lg:col-span-2" style={{ color: "#FFFFFF99" }}>
             {results.length} {mode === "hotel" ? "hôtels" : "appartements meublés"} à {city}
           </div>
-          {loading && <div className="text-xs" style={{ color: "#FFFFFF99" }}>Chargement des offres…</div>}
+          {loading && <div className="text-xs lg:col-span-2" style={{ color: "#FFFFFF99" }}>Chargement des offres…</div>}
           {!loading && results.length === 0 && (
-            <div className="text-xs bg-white/10 rounded-xl p-4" style={{ color: "#FFFFFF99" }}>Aucune offre disponible pour le moment à {city}.</div>
+            <div className="text-xs bg-white/10 rounded-xl p-4 lg:col-span-2" style={{ color: "#FFFFFF99" }}>Aucune offre disponible pour le moment à {city}.</div>
           )}
           {results.map((h, i) => (
             <button
@@ -993,6 +1041,8 @@ function Hotels({ back, onBook, onViewDetail }) {
           ))}
         </div>
       )}
+      </div>
+      </div>
     </div>
   );
 }
@@ -1017,6 +1067,8 @@ function Vehicles({ back, onBook, onViewDetail }) {
   return (
     <div className="pb-8">
       <TopBar title="Location de voiture" onBack={back} />
+      <div className="lg:grid lg:grid-cols-[380px_1fr] lg:gap-10 lg:items-start">
+      <div className="lg:sticky lg:top-24">
 
       <div className="px-5 grid grid-cols-2 gap-2 mb-1">
         <button onClick={() => setDriver("sans")} className="rounded-xl py-2.5 flex items-center justify-center gap-2 border"
@@ -1045,14 +1097,17 @@ function Vehicles({ back, onBook, onViewDetail }) {
           <span className="text-white text-sm font-medium">🔍 Rechercher</span>
         </button>
       </div>
+      </div>
+      <div>
+      {!searched && <DesktopEmpty emoji="🚗" text="Indiquez la ville et vos dates : les véhicules disponibles s'affichent ici." />}
       {searched && (
-        <div className="px-5 mt-6 flex flex-col gap-3">
-          <div className="text-xs uppercase tracking-wide" style={{ color: "#FFFFFF99" }}>
+        <div className="px-5 mt-6 lg:mt-0 flex flex-col gap-3 lg:grid lg:grid-cols-2 lg:gap-4">
+          <div className="text-xs uppercase tracking-wide lg:col-span-2" style={{ color: "#FFFFFF99" }}>
             {cars.length} véhicules disponibles à {city} · {driver === "avec" ? "avec chauffeur" : "sans chauffeur"}
           </div>
-          {loading && <div className="text-xs" style={{ color: "#FFFFFF99" }}>Chargement des offres…</div>}
+          {loading && <div className="text-xs lg:col-span-2" style={{ color: "#FFFFFF99" }}>Chargement des offres…</div>}
           {!loading && cars.length === 0 && (
-            <div className="text-xs bg-white/10 rounded-xl p-4" style={{ color: "#FFFFFF99" }}>Aucun véhicule disponible pour le moment à {city}.</div>
+            <div className="text-xs bg-white/10 rounded-xl p-4 lg:col-span-2" style={{ color: "#FFFFFF99" }}>Aucun véhicule disponible pour le moment à {city}.</div>
           )}
           {cars.map((c, i) => (
             <button
@@ -1084,6 +1139,8 @@ function Vehicles({ back, onBook, onViewDetail }) {
           ))}
         </div>
       )}
+      </div>
+      </div>
     </div>
   );
 }
@@ -1233,7 +1290,7 @@ function Taxi({ back, onBook }) {
 
         <div className="px-5 mt-6">
           <div className="text-[11px] uppercase tracking-wide mb-2" style={{ color: "#F0ECE199" }}>Destinations suggérées</div>
-          <div className="flex flex-col">
+          <div className="flex flex-col lg:grid lg:grid-cols-3 lg:gap-3">
             {SUGGESTIONS.map((s) => (
               <button key={s.label} onClick={() => setDestination(s.label)} className="flex items-center gap-3 py-2.5 text-left border-b" style={{ borderColor: "#F0ECE114" }}>
                 <span className="w-8 h-8 rounded-lg flex items-center justify-center text-sm shrink-0" style={{ background: "#F0ECE114" }}>🕓</span>
@@ -1262,7 +1319,7 @@ function Taxi({ back, onBook }) {
         <TopBar title="Choisir une course" onBack={() => setStep("form")} />
         <div className="px-5">
           <div className="text-[11px] uppercase tracking-wide mb-3" style={{ color: "#F0ECE199" }}>Quel type de course voulez-vous ?</div>
-          <div className="flex flex-col gap-2.5">
+          <div className="flex flex-col gap-2.5 lg:grid lg:grid-cols-2 lg:gap-4">
             {VEHICLES.map((o) => (
               <button key={o.key} onClick={() => { setVehicleType(o.key); setStep("map"); }} className="rounded-2xl px-4 py-3.5 flex items-center justify-between border text-left"
                 style={{ borderColor: "#F0ECE125", background: "transparent" }}>
@@ -1288,7 +1345,7 @@ function Taxi({ back, onBook }) {
   return (
     <div className="pb-8">
       <TopBar title={searching ? "Recherche d'un chauffeur" : (matchedListing ? "Chauffeur trouvé" : "Aucun chauffeur")} onBack={() => setStep("vehicle")} />
-      <div className="mx-5 rounded-2xl overflow-hidden relative" style={{ height: 230, background: "#0B1526" }}>
+      <div className="mx-5 rounded-2xl overflow-hidden relative h-[230px] lg:h-[380px]" style={{ background: "#0B1526" }}>
         <div className="absolute inset-0" style={{
           backgroundImage: "linear-gradient(#F0ECE114 1px, transparent 1px), linear-gradient(90deg, #F0ECE114 1px, transparent 1px)",
           backgroundSize: "26px 26px",
@@ -1431,7 +1488,7 @@ function BusPassengerForm({ item, back, onNext }) {
           <div className="text-sm font-medium" style={{ color: "#FFFFFF" }}>{item.title}</div>
           <div className="text-xs mt-0.5" style={{ color: "#FFFFFFb3" }}>{item.subtitle}</div>
         </div>
-        <div className="flex flex-col gap-3">
+        <div className="flex flex-col gap-3 lg:grid lg:grid-cols-2 lg:gap-4">
           <Field emoji="👤" label="Nom"><input value={p.nom} onChange={set("nom")} className="w-full text-sm outline-none bg-transparent" style={{ color: "#1B2A4A" }} /></Field>
           <Field emoji="👤" label="Prénom(s)"><input value={p.prenoms} onChange={set("prenoms")} className="w-full text-sm outline-none bg-transparent" style={{ color: "#1B2A4A" }} /></Field>
           <Field emoji="📱" label="Numéro de téléphone"><input value={p.telephone} onChange={set("telephone")} placeholder="+223 70 00 00 00" className="w-full text-sm outline-none bg-transparent" style={{ color: "#1B2A4A" }} /></Field>
@@ -1464,7 +1521,7 @@ function PassengerForm({ item, back, onNext }) {
         <p className="text-xs mb-4" style={{ color: "#FFFFFF99" }}>
           Veuillez saisir les informations exactement comme elles apparaissent sur votre document de voyage.
         </p>
-        <div className="flex flex-col gap-3">
+        <div className="flex flex-col gap-3 lg:grid lg:grid-cols-2 lg:gap-4">
           <Field emoji="👤" label="Nom"><input value={p.nom} onChange={set("nom")} className="w-full text-sm outline-none bg-transparent" style={{ color: "#1B2A4A" }} /></Field>
           <Field emoji="👤" label="Prénom(s)"><input value={p.prenoms} onChange={set("prenoms")} className="w-full text-sm outline-none bg-transparent" style={{ color: "#1B2A4A" }} /></Field>
           <div className="flex gap-3">
@@ -1514,7 +1571,7 @@ function ContactForm({ item, back, onNext }) {
         <p className="text-xs mb-4" style={{ color: "#FFFFFF99" }}>
           Votre confirmation de réservation sera envoyée par SMS, WhatsApp ou e-mail.
         </p>
-        <div className="flex flex-col gap-3">
+        <div className="flex flex-col gap-3 lg:grid lg:grid-cols-2 lg:gap-4">
           <Field emoji="👤" label="Nom complet"><input value={c.nomComplet} onChange={set("nomComplet")} className="w-full text-sm outline-none bg-transparent" style={{ color: "#1B2A4A" }} /></Field>
           <Field emoji="📱" label="Numéro de téléphone"><input value={c.telephone} onChange={set("telephone")} placeholder="+223 70 00 00 00" className="w-full text-sm outline-none bg-transparent" style={{ color: "#1B2A4A" }} /></Field>
           <Field emoji="💬" label="WhatsApp"><input value={c.whatsapp} onChange={set("whatsapp")} placeholder="+223 70 00 00 00" className="w-full text-sm outline-none bg-transparent" style={{ color: "#1B2A4A" }} /></Field>
@@ -1555,7 +1612,7 @@ function TripOptions({ item, back, onNext }) {
   return (
     <div className="pb-8">
       <TopBar title="Options du voyage" onBack={back} />
-      <div className="px-5 flex flex-col gap-2">
+      <div className="px-5 flex flex-col gap-2 lg:grid lg:grid-cols-2 lg:gap-3">
         {rows.map((r) => (
           <button
             key={r.key}
@@ -1582,7 +1639,7 @@ function TripOptions({ item, back, onNext }) {
         ))}
         <button
           onClick={() => onNext(opts)}
-          className="w-full rounded-xl py-3 mt-4"
+          className="w-full rounded-xl py-3 mt-4 lg:col-span-2"
           style={{ background: item.accent }}
         >
           <span className="text-white text-sm font-medium">Continuer</span>
@@ -2131,9 +2188,9 @@ function MyBookings({ back, bookings, onReceipt }) {
           </button>
         ))}
       </div>
-      <div className="px-5 mt-4 flex flex-col gap-2">
+      <div className="px-5 mt-4 flex flex-col gap-2 lg:grid lg:grid-cols-2 lg:gap-3">
         {filtered.length === 0 ? (
-          <div className="text-sm text-center py-10" style={{ color: "#FFFFFF99" }}>
+          <div className="text-sm text-center py-10 lg:col-span-2" style={{ color: "#FFFFFF99" }}>
             Aucune réservation dans cette catégorie.
           </div>
         ) : (
@@ -2329,6 +2386,7 @@ function TaamaApp() {
 
   // Notifications déjà autorisées : on (ré)enregistre l'appareil sans rien demander
   useEffect(() => { if (token) enableClientPush(token, false); }, [token]);
+  useEffect(() => { try { window.scrollTo(0, 0); } catch (e) {} }, [screen]);
 
   // Ouverture depuis une notification « réservation validée » : afficher le reçu
   const wantedReceipt = useRef(new URLSearchParams(location.search).get("recu"));
@@ -2470,7 +2528,11 @@ function TaamaApp() {
   };
   return (
     <div className="min-h-screen w-full flex justify-center" style={{ background: "#0B1526" }}>
-      <div className={"w-full min-h-screen " + (screen === "home" ? "max-w-[480px] lg:max-w-none" : "max-w-[480px] lg:max-w-[560px] lg:my-6 lg:rounded-3xl lg:overflow-hidden lg:shadow-2xl")} style={{ background: "#13223D", color: "#F0ECE1" }}>
+      <div className="w-full min-h-screen max-w-[480px] lg:max-w-none" style={{ background: "#13223D", color: "#F0ECE1" }}>
+        {screen !== "home" && screen !== "login" && (
+          <DesktopNav go={(to) => (to === "home" ? goHome() : setScreen(to))} onLogout={handleLogout}
+            current={["detail", "contract"].includes(screen) ? (checkoutItem && checkoutItem.mode === "vehicle" ? "vehicles" : "hotels") : screen} />
+        )}
         {notice && token && (
           <div
             onClick={() => {
@@ -2490,11 +2552,15 @@ function TaamaApp() {
             </div>
           </div>
         )}
-        {screens[screen]}
+        <div className={"dk-main " + (screen === "home" ? "" : screen === "login" ? "lg:max-w-md lg:mx-auto lg:pt-16" :
+          WIDE_SCREENS.includes(screen) ? "lg:max-w-6xl lg:mx-auto lg:px-8 lg:pb-16" : "lg:max-w-3xl lg:mx-auto lg:px-8 lg:pb-16")}>
+          {screens[screen]}
+        </div>
       </div>
     </div>
   );
 }
+const WIDE_SCREENS = ["tickets", "hotels", "vehicles", "mybookings"];
 
 ReactDOM.createRoot(document.getElementById('root')).render(<TaamaApp />);
 </script>
