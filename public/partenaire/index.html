@@ -35,6 +35,7 @@
   #app {
     max-width: 480px;
     margin: 0 auto;
+    position: fixed; inset: 0;
     height: 100vh;
     height: 100dvh;
     background: var(--navy);
@@ -164,7 +165,17 @@
   .finance-section h4 { margin:0 0 10px; color:var(--navy); font-size:13px; }
 
   /* ---------- Detail ---------- */
-  #screen-detail .detail-header { background: var(--navy); padding:16px 20px; flex-shrink:0; }
+  #screen-detail .detail-header { background: var(--navy); padding:14px 18px 16px; flex-shrink:0; }
+  #screen-detail .detail-body { background: var(--navy); padding: 4px 14px 14px; }
+  .dh-sub { color:#9AA6BD; font-size:12.5px; margin-top:6px; }
+  .dh-amount { display:flex; align-items:baseline; gap:8px; margin-top:12px; }
+  .dh-amount { flex-wrap: wrap; }
+  .dh-amount b { color:#fff; font-size:24px; font-weight:800; letter-spacing:-.3px; white-space:nowrap; }
+  .dh-amount span { color:var(--gold-soft); font-size:12px; }
+  .call-btn { display:flex; align-items:center; justify-content:center; gap:8px; margin-top:12px; padding:11px; border-radius:10px;
+    background:#EAF5EE; color:var(--success); font-weight:700; font-size:13.5px; text-decoration:none; }
+  #detail-actions .actions-row { padding:12px 14px max(14px, env(safe-area-inset-bottom)); background: var(--navy); border-top:1px solid #1E3A5F; }
+  #detail-actions .btn-action { padding:15px 0; font-size:15px; border-radius:12px; }
   .back-link { color: var(--gold-soft); font-size:13px; margin-bottom:10px; cursor:pointer; display:inline-block; }
   .detail-title-row { display:flex; justify-content:space-between; align-items:center; }
   .detail-title-row .ref { color:#fff; font-size:17px; font-weight:700; }
@@ -397,6 +408,8 @@
         <span class="ref" id="detail-ref"></span>
         <span class="status-pill" id="detail-status"></span>
       </div>
+      <div class="dh-sub" id="detail-sub"></div>
+      <div class="dh-amount"><b id="detail-amount"></b><span id="detail-net"></span></div>
     </div>
     <div class="detail-body" id="detail-body"></div>
     <div id="detail-actions"></div>
@@ -578,6 +591,8 @@ function $(id) { return document.getElementById(id); }
 function showScreen(id) {
   document.querySelectorAll(".screen").forEach(s => s.classList.remove("active"));
   $(id).classList.add("active");
+  window.scrollTo(0, 0);
+  $(id).querySelectorAll(".detail-body, .settings-body").forEach(el => { el.scrollTop = 0; });
 }
 function toast(msg) {
   const t = $("toast");
@@ -1096,31 +1111,35 @@ function openDetail(id) {
   $("detail-status").className = "status-pill " + cls;
   $("detail-status").textContent = label;
 
+  const fin = financeForBooking(b);
+  $("detail-sub").textContent = [b.title, formatDate(b.created_at)].filter(Boolean).join(" · ");
+  $("detail-amount").textContent = money(b.price_fcfa);
+  $("detail-net").textContent = "dont " + money(fin.net) + " pour vous";
+  const tel = b.contact_phone ? String(b.contact_phone).replace(/[^\d+]/g, "") : "";
   $("detail-body").innerHTML = `
-    <div class="detail-card">
-      <h4>Détails</h4>
-      <div class="detail-row"><span class="label">Partenaire</span><span class="value">${esc(state.partner ? state.partner.name : state.category.label)}</span></div>
-      <div class="detail-row"><span class="label">Référence listing</span><span class="value">${b.listing_id ? esc(String(b.listing_id).slice(0,8)) + '…' : '—'}</span></div>
-      <div class="detail-row"><span class="label">Paiement</span><span class="value">${esc(PAYMENT_LABELS[b.payment_method] || b.payment_method || '—')}</span></div>
-      <div class="detail-row"><span class="label">Montant client</span><span class="value">${money(b.price_fcfa)}</span></div>
-      <div class="detail-row"><span class="label">Commission Taama</span><span class="value">-${money(financeForBooking(b).commission)} (${Math.round(financeForBooking(b).rate*100)}%)</span></div>
-      <div class="detail-row"><span class="label">Revenu partenaire</span><span class="value">${money(financeForBooking(b).net)}</span></div>
-      <div class="detail-row"><span class="label">Créée le</span><span class="value">${formatDate(b.created_at)}</span></div>
-    </div>
     ${(b.passenger_name || b.contact_phone || b.contact_email) ? `
     <div class="detail-card">
-      <h4>Passager</h4>
+      <h4>Client</h4>
       ${b.passenger_name ? `<div class="detail-row"><span class="label">Nom</span><span class="value">${esc(b.passenger_name)}</span></div>` : ''}
       ${b.passenger_document ? `<div class="detail-row"><span class="label">Document</span><span class="value">${esc(b.passenger_document)}</span></div>` : ''}
       ${b.contact_phone ? `<div class="detail-row"><span class="label">Téléphone</span><span class="value">${esc(b.contact_phone)}</span></div>` : ''}
       ${b.contact_email ? `<div class="detail-row"><span class="label">E-mail</span><span class="value">${esc(b.contact_email)}</span></div>` : ''}
+      ${tel ? `<a class="call-btn" href="tel:${esc(tel)}">📞 Appeler le client</a>` : ''}
     </div>` : ''}
+    <div class="detail-card">
+      <h4>Paiement</h4>
+      <div class="detail-row"><span class="label">Moyen</span><span class="value">${esc(PAYMENT_LABELS[b.payment_method] || b.payment_method || '—')}</span></div>
+      <div class="detail-row"><span class="label">Payé par le client</span><span class="value">${money(b.price_fcfa)}</span></div>
+      <div class="detail-row"><span class="label">Commission Taama (${Math.round(fin.rate*100)}%)</span><span class="value">-${money(fin.commission)}</span></div>
+      <div class="detail-row"><span class="label">Votre revenu</span><span class="value" style="color:var(--success)">${money(fin.net)}</span></div>
+    </div>
     ${(b.options && Object.keys(b.options).some(k => b.options[k])) ? `
     <div class="detail-card">
       <h4>Options choisies</h4>
       ${Object.entries(b.options).filter(([k,v]) => v).map(([k]) => `<div class="detail-row"><span class="label">${esc(OPTION_LABELS[k] || k)}</span><span class="value">✓</span></div>`).join('')}
     </div>` : ''}
   `;
+
 
   const actionsEl = $("detail-actions");
   if (cls === "paid") {
