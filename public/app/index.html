@@ -238,8 +238,10 @@ async function fetchListings(type) {
       agency: l.partner_name || "",
       // champs billets/transport
       company: l.title,
-      depart: m.time || "",
+      depart: [m.date ? new Date(m.date + "T00:00").toLocaleDateString("fr-FR", { day: "numeric", month: "short" }) : "", m.time].filter(Boolean).join(" · "),
       arrive: "",
+      dep: m.departure || "",
+      dest: m.destination || "",
       detail: [m.departure, m.destination].filter(Boolean).join(" → "),
       // champs véhicule
       type_vehicule: m.room_type || "",
@@ -582,6 +584,12 @@ function Tickets({ back, onBook }) {
       .finally(() => setLoading(false));
   };
 
+  // Trajets qui correspondent à la recherche (origine / destination), sans tenir compte des accents
+  const norm = (v) => String(v || "").normalize("NFD").replace(/[\u0300-\u036f]/g, "").replace(/\(.*?\)/g, "").toLowerCase().replace(/[^a-z]/g, "");
+  const same = (a, b) => { const x = norm(a), y = norm(b); return !!x && !!y && (x.includes(y) || y.includes(x)); };
+  const matching = results.filter((r) => same(r.dep, from) && same(r.dest, to));
+  const others = results.filter((r) => !matching.includes(r));
+
   const roundTripPrice = (price) => {
     const num = parseInt(price.replace(/[^\d]/g, ""), 10);
     const total = Math.round((num * 1.8) / 1000) * 1000;
@@ -716,19 +724,28 @@ function Tickets({ back, onBook }) {
       {searched && (
         <div className="px-5 mt-6 flex flex-col gap-3">
           <div className="text-xs uppercase tracking-wide" style={{ color: "#FFFFFF99" }}>
-            {from} → {to} {isRoundTrip && `→ ${from}`} · {results.length} {mode === "vol" ? "vols" : "trajets"} · {passengers} {passengers > 1 ? "places" : "place"}
+            {from} → {to} {isRoundTrip && `→ ${from}`} · {matching.length} {mode === "vol" ? "vol" : "trajet"}{matching.length > 1 ? "s" : ""} · {passengers} {passengers > 1 ? "places" : "place"}
           </div>
           {loading && <div className="text-xs" style={{ color: "#FFFFFF99" }}>Chargement des offres…</div>}
           {!loading && results.length === 0 && (
             <div className="text-xs bg-white/10 rounded-xl p-4" style={{ color: "#FFFFFF99" }}>Aucune offre disponible pour le moment sur ce trajet.</div>
           )}
-          {results.map((r, i) => {
+          {!loading && results.length > 0 && matching.length === 0 && (
+            <div className="text-xs bg-white/10 rounded-xl p-4" style={{ color: "#FFFFFFcc" }}>
+              Aucun {mode === "vol" ? "vol" : "trajet"} {from} → {to} pour le moment. Voici les autres {mode === "vol" ? "vols" : "trajets"} disponibles :
+            </div>
+          )}
+          {[...matching, ...others].map((r, i) => {
             const displayPrice = isRoundTrip ? roundTripPrice(r.price) : r.price;
             return (
-              <div key={i} className="bg-white rounded-xl p-4 border border-black/5 flex items-center justify-between">
+              <React.Fragment key={r.id || i}>
+              {matching.length > 0 && others.length > 0 && i === matching.length && (
+                <div className="text-xs uppercase tracking-wide mt-3" style={{ color: "#FFFFFF99" }}>Autres {mode === "vol" ? "vols" : "trajets"} disponibles</div>
+              )}
+              <div className="bg-white rounded-xl p-4 border border-black/5 flex items-center justify-between">
                 <div>
                   <div className="text-sm font-medium" style={{ color: "#1B2A4A" }}>{r.company}</div>
-                  <div className="text-xs text-black/40 mt-0.5">{r.depart} — {r.arrive}</div>
+                  <div className="text-xs text-black/40 mt-0.5">{r.depart || "Horaire à confirmer"}</div>
                   <div className="text-[11px] mt-0.5" style={{ color: accent }}>{r.detail}{isRoundTrip && " · Aller-retour"}</div>
                 </div>
                 <div className="text-right">
@@ -756,6 +773,7 @@ function Tickets({ back, onBook }) {
                   </button>
                 </div>
               </div>
+              </React.Fragment>
             );
           })}
         </div>
