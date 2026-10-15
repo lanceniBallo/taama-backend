@@ -131,11 +131,39 @@
 
 <div id="root"></div>
 <script type="text/babel">
-const { useState, useEffect } = React;
+const { useState, useEffect, useRef } = React;
 
 // Adresse du backend Taama. Modifie cette valeur si ton API tourne ailleurs
 // (ex. une URL Railway/Render une fois déployée).
 const API_BASE = "https://taama-backend-production.up.railway.app";
+
+// Notifications du client (réservation validée / refusée)
+function b64ToBytes(b64) {
+  const pad = "=".repeat((4 - (b64.length % 4)) % 4);
+  const raw = atob((b64 + pad).replace(/-/g, "+").replace(/_/g, "/"));
+  return Uint8Array.from(raw, (c) => c.charCodeAt(0));
+}
+function pushSupported() { return "serviceWorker" in navigator && "PushManager" in window && "Notification" in window; }
+async function enableClientPush(token, ask) {
+  if (!pushSupported() || !token) return false;
+  let perm = Notification.permission;
+  if (perm !== "granted") { if (!ask) return false; perm = await Notification.requestPermission(); }
+  if (perm !== "granted") return false;
+  try {
+    const reg = await navigator.serviceWorker.ready;
+    const keyRes = await fetch(API_BASE + "/me/push/key");
+    if (!keyRes.ok) return false;
+    const { key } = await keyRes.json();
+    let sub = await reg.pushManager.getSubscription();
+    if (!sub) sub = await reg.pushManager.subscribe({ userVisibleOnly: true, applicationServerKey: b64ToBytes(key) });
+    const r = await fetch(API_BASE + "/me/push/subscribe", {
+      method: "POST",
+      headers: { "Content-Type": "application/json", Authorization: "Bearer " + token },
+      body: JSON.stringify(sub.toJSON()),
+    });
+    return r.ok;
+  } catch (e) { console.error("Notifications :", e.message); return false; }
+}
 
 // Barème commercial Taifa/Taama. La commission est prélevée sur la part partenaire,
 // pas ajoutée au total affiché au client. Le calcul définitif doit être fait côté backend.
@@ -383,7 +411,7 @@ function Login({ onLoggedIn }) {
   );
 }
 
-function Home({ go, bookings, onLogout }) {
+function Home({ go, bookings, onLogout, onReceipt }) {
   return (
     <div className="pb-8">
       {/* En-tête + onglets */}
@@ -476,7 +504,7 @@ function Home({ go, bookings, onLogout }) {
         </div>
         <div className="flex flex-col gap-2">
           {bookings.slice(0, 3).map((b, i) => (
-            <BookingRow key={i} b={b} />
+            <BookingRow key={b.reference || i} b={b} onReceipt={onReceipt} />
           ))}
         </div>
       </div>
@@ -1737,7 +1765,23 @@ function Checkout({ item, back, onPay, user }) {
   );
 }
 
-function Confirmation({ item, reference, passenger, contact, total, goHome }) {
+function NotifyButton() {
+  const [state, setState] = useState(() => (!pushSupported() ? "unsupported" : Notification.permission === "granted" ? "on" : Notification.permission === "denied" ? "denied" : "off"));
+  if (state === "unsupported") return null;
+  if (state === "on") return <p className="text-xs mt-3" style={{ color: "#8FD3A8" }}>🔔 Vous recevrez une notification dès la validation.</p>;
+  if (state === "denied") return <p className="text-xs mt-3" style={{ color: "#FFFFFF99" }}>🔕 Notifications bloquées : autorisez-les dans les réglages du navigateur pour être prévenu.</p>;
+  return (
+    <button
+      onClick={async () => { const ok = await enableClientPush(localStorage.getItem("taama_client_token"), true); setState(ok ? "on" : (window.Notification && Notification.permission === "denied" ? "denied" : "off")); }}
+      className="w-full rounded-xl py-3 mt-4 border"
+      style={{ borderColor: "#C08A3E", color: "#E8CD7A", background: "transparent" }}
+    >
+      <span className="text-sm font-medium">🔔 Me prévenir par notification</span>
+    </button>
+  );
+}
+
+function Confirmation({ item, reference, passenger, contact, total, goHome, pending, partnerName, openBookings, backLabel }) {
   const isFlight = item.mode === "vol";
   const isBus = item.mode === "bus";
   const isHotel = item.mode === "hotel";
@@ -1789,6 +1833,54 @@ function Confirmation({ item, reference, passenger, contact, total, goHome }) {
     window.location.href = "mailto:?subject=" + encodeURIComponent("Ma réservation Taama · " + reference) + "&body=" + encodeURIComponent(ticketText);
   };
 
+  // Juste après le paiement : pas encore de reçu, on attend la validation du partenaire
+  if (pending) {
+    return (
+      <div className="pb-8 px-5 pt-10 flex flex-col items-center text-center">
+        <div className="w-16 h-16 rounded-full flex items-center justify-center text-3xl mb-4" style={{ background: "#C08A3E22" }}>⏳</div>
+        <div className="text-xl" style={{ fontFamily: "'Fraunces', serif", fontWeight: 600, color: "#FFFFFF" }}>Paiement reçu</div>
+        <p className="text-sm mt-2" style={{ color: "#FFFFFFb3" }}>
+          Votre demande a été envoyée {partnerName ? <>à <b style={{ color: "#E8CD7A" }}>{partnerName}</b></> : "au partenaire"}.
+          {isTaxi ? " Le chauffeur doit confirmer la course." : " Il doit maintenant la valider."}
+        </p>
+        <div className="w-full bg-white rounded-xl p-4 border border-black/5 mt-6 text-left">
+          <div className="flex items-center gap-3 pb-3 border-b border-black/5">
+            <span className="text-xl">{item.icon}</span>
+            <div>
+              <div className="text-sm font-medium" style={{ color: "#1B2A4A" }}>{item.title}</div>
+              <div className="text-xs text-black/40">{item.subtitle}</div>
+            </div>
+          </div>
+          <div className="flex items-center justify-between pt-3">
+            <span className="text-xs uppercase tracking-wide text-black/40">Référence</span>
+            <span className="text-sm" style={{ fontFamily: "'IBM Plex Mono', monospace", color: item.accent }}>{reference}</span>
+          </div>
+          <div className="flex items-center justify-between pt-2">
+            <span className="text-xs uppercase tracking-wide text-black/40">Montant payé</span>
+            <span className="text-sm" style={{ fontFamily: "'IBM Plex Mono', monospace", color: item.accent }}>{amount}</span>
+          </div>
+          <div className="flex items-center justify-between pt-2">
+            <span className="text-xs uppercase tracking-wide text-black/40">Statut</span>
+            <span className="text-[11px] font-medium px-2 py-0.5 rounded-full" style={{ background: "#C08A3E1a", color: "#C08A3E" }}>… En attente de validation</span>
+          </div>
+        </div>
+        <div className="w-full rounded-xl p-4 mt-4 text-left" style={{ background: "#C08A3E1a" }}>
+          <p className="text-xs" style={{ color: "#FFFFFFcc" }}>
+            📄 Votre <b>reçu</b> sera disponible dès que le partenaire aura validé votre réservation. Vous serez prévenu dans l'application,
+            et vous le retrouverez dans <b>Mes réservations</b>.
+          </p>
+        </div>
+        <NotifyButton />
+        <button onClick={openBookings} className="w-full rounded-xl py-3 mt-6" style={{ background: "#C08A3E" }}>
+          <span className="text-white text-sm font-medium">Suivre ma réservation</span>
+        </button>
+        <button onClick={goHome} className="w-full rounded-xl py-3 mt-2" style={{ background: "#1B2A4A" }}>
+          <span className="text-white text-sm font-medium">Retour à l'accueil</span>
+        </button>
+      </div>
+    );
+  }
+
   return (
     <div className="pb-8 px-5 pt-10 flex flex-col items-center text-center">
       <div
@@ -1798,10 +1890,10 @@ function Confirmation({ item, reference, passenger, contact, total, goHome }) {
         {isTaxi ? "🚕" : "✓"}
       </div>
       <div className="text-xl" style={{ fontFamily: "'Fraunces', serif", fontWeight: 600, color: "#FFFFFF" }}>
-        {isTaxi ? "Votre chauffeur arrive !" : "Réservation confirmée !"}
+        {isTaxi ? "Votre chauffeur arrive !" : "Réservation validée !"}
       </div>
       <p className="text-sm mt-2" style={{ color: "#FFFFFFb3" }}>
-        {isTaxi ? "Il va vous contacter et arriver très prochainement." : "Un reçu a été envoyé par SMS et par email."}
+        {isTaxi ? "Il va vous contacter et arriver très prochainement." : <>Votre reçu Taama{partnerName ? <> — validé par <b style={{ color: "#E8CD7A" }}>{partnerName}</b></> : ""}.</>}
       </p>
 
       <div className="w-full bg-white rounded-xl p-4 border border-black/5 mt-6 text-left">
@@ -1928,7 +2020,7 @@ function Confirmation({ item, reference, passenger, contact, total, goHome }) {
         className="w-full rounded-xl py-3 mt-6"
         style={{ background: "#1B2A4A" }}
       >
-        <span className="text-white text-sm font-medium">Retour à l'accueil</span>
+        <span className="text-white text-sm font-medium">{backLabel || "Retour à l'accueil"}</span>
       </button>
     </div>
   );
@@ -1936,14 +2028,20 @@ function Confirmation({ item, reference, passenger, contact, total, goHome }) {
 
 const STATUS_STYLE = {
   "Confirmé": { bg: "#3D6B4F1a", color: "#3D6B4F", mark: "✓" },
-  "En attente": { bg: "#C08A3E1a", color: "#C08A3E", mark: "…" },
+  "En attente": { bg: "#C08A3E1a", color: "#C08A3E", mark: "…", label: "En attente de validation" },
   "Annulé": { bg: "#A63D2F1a", color: "#A63D2F", mark: "✕" },
+  "Rejeté": { bg: "#A63D2F1a", color: "#A63D2F", mark: "✕", label: "Refusée" },
 };
 
-function BookingRow({ b }) {
+function BookingRow({ b, onReceipt }) {
   const st = STATUS_STYLE[b.status] || STATUS_STYLE["Confirmé"];
+  const canOpen = b.status === "Confirmé" && onReceipt;
   return (
-    <div className="bg-white rounded-xl p-4 border border-black/5 flex items-center gap-3">
+    <div
+      onClick={canOpen ? () => onReceipt(b) : undefined}
+      className="bg-white rounded-xl p-4 border border-black/5 flex items-center gap-3"
+      style={{ cursor: canOpen ? "pointer" : "default" }}
+    >
       <div className="w-10 h-10 rounded-lg flex items-center justify-center" style={{ background: b.accent + "1a" }}>{b.icon}</div>
       <div className="flex-1">
         <div className="text-sm font-medium" style={{ color: "#1B2A4A" }}>{b.title}</div>
@@ -1951,14 +2049,15 @@ function BookingRow({ b }) {
       </div>
       <div className="flex flex-col items-end gap-1">
         <span className="text-[10px] font-medium px-2 py-0.5 rounded-full" style={{ background: st.bg, color: st.color }}>
-          {st.mark} {b.status}
+          {st.mark} {st.label || b.status}
         </span>
+        {canOpen && <span className="text-[11px] font-medium" style={{ color: "#C08A3E" }}>📄 Voir le reçu</span>}
       </div>
     </div>
   );
 }
 
-function MyBookings({ back, bookings }) {
+function MyBookings({ back, bookings, onReceipt }) {
   const [filter, setFilter] = useState("À venir");
   const tabs = ["À venir", "Terminées", "Annulées"];
   const filtered = bookings.filter((b) => {
@@ -1992,7 +2091,7 @@ function MyBookings({ back, bookings }) {
             Aucune réservation dans cette catégorie.
           </div>
         ) : (
-          filtered.map((b, i) => <BookingRow key={i} b={b} />)
+          filtered.map((b, i) => <BookingRow key={b.reference || i} b={b} onReceipt={onReceipt} />)
         )}
       </div>
     </div>
@@ -2021,6 +2120,9 @@ function TaamaApp() {
   const [detailOrigin, setDetailOrigin] = useState("home");
   const [lastReference, setLastReference] = useState(null);
   const [bookings, setBookings] = useState([]);
+  const [receipt, setReceipt] = useState(null); // réservation validée dont on affiche le reçu
+  const [notice, setNotice] = useState(null);   // bandeau « réservation validée »
+  const knownStatus = useRef(null);
 
   const loadBookings = async (authToken) => {
     if (String(authToken).startsWith("local-")) return; // session locale fictive, pas de backend à interroger
@@ -2035,8 +2137,22 @@ function TaamaApp() {
           subtitle: b.subtitle,
           accent: b.accent_color,
           status: b.status,
+          reference: b.reference,
+          price: b.price_fcfa,
+          type: b.listing_type,
+          meta: b.listing_metadata || {},
+          partnerName: b.partner_name,
+          passengerName: b.passenger_name,
+          contactPhone: b.contact_phone,
         }))
       );
+      // Prévenir le client quand le partenaire valide (ou refuse) une réservation
+      const prev = knownStatus.current;
+      if (prev) {
+        const changed = data.find((b) => prev[b.reference] === "En attente" && (b.status === "Confirmé" || b.status === "Rejeté"));
+        if (changed) setNotice({ reference: changed.reference, status: changed.status, title: changed.title });
+      }
+      knownStatus.current = Object.fromEntries(data.map((b) => [b.reference, b.status]));
     } catch (e) {
       console.error("Impossible de charger les réservations :", e.message);
       if (e.status === 401) handleLogout();
@@ -2165,9 +2281,57 @@ function TaamaApp() {
     setScreen("confirmation");
   };
 
+  // Notifications déjà autorisées : on (ré)enregistre l'appareil sans rien demander
+  useEffect(() => { if (token) enableClientPush(token, false); }, [token]);
+
+  // Ouverture depuis une notification « réservation validée » : afficher le reçu
+  const wantedReceipt = useRef(new URLSearchParams(location.search).get("recu"));
+  useEffect(() => {
+    const ref = wantedReceipt.current;
+    if (!ref) return;
+    const b = bookings.find((x) => x.reference === ref);
+    if (b && b.status === "Confirmé") {
+      wantedReceipt.current = null;
+      history.replaceState(null, "", location.pathname);
+      openReceipt(b);
+    }
+  }, [bookings]);
+
+  // Suivi en direct : on vérifie régulièrement si le partenaire a validé
+  useEffect(() => {
+    if (!token) return;
+    const id = setInterval(() => { if (document.visibilityState === "visible") loadBookings(token); }, 20000);
+    const onShow = () => { if (document.visibilityState === "visible") loadBookings(token); };
+    document.addEventListener("visibilitychange", onShow);
+    return () => { clearInterval(id); document.removeEventListener("visibilitychange", onShow); };
+  }, [token]);
+
+  // Reçu reconstruit à partir d'une réservation validée
+  const MODE_FROM_TYPE = { ticket: "bus", bus: "bus", airline: "vol", flight: "vol", hotel: "hotel", apartment: "hotel", real_estate: "hotel", vehicle: "vehicle", car_rental: "vehicle", insurance: "assurance", taxi: "taxi" };
+  const openReceipt = (b) => {
+    const m = b.meta || {};
+    setReceipt({
+      item: {
+        mode: MODE_FROM_TYPE[b.type] || "autre",
+        title: b.title, subtitle: b.subtitle, icon: b.icon, accent: b.accent || "#C08A3E",
+        price: Number(b.price || 0).toLocaleString("fr-FR") + " FCFA",
+        city: m.city, zone: m.address || m.zone,
+        from: m.departure || m.from, to: m.destination || m.to, date: m.date, depart: m.time, arrive: m.arrival,
+        flightNo: m.flight_no || m.flightNo, driver: m.driver,
+      },
+      reference: b.reference,
+      total: Number(b.price || 0),
+      passenger: b.passengerName ? { prenoms: b.passengerName, nom: "" } : null,
+      contact: b.contactPhone ? { telephone: b.contactPhone } : null,
+      partnerName: b.partnerName,
+    });
+    setNotice(null);
+    setScreen("receipt");
+  };
+
   const screens = {
     login: <Login onLoggedIn={handleLoggedIn} />,
-    home: <Home go={setScreen} bookings={bookings} onLogout={handleLogout} />,
+    home: <Home go={setScreen} bookings={bookings} onLogout={handleLogout} onReceipt={openReceipt} />,
     tickets: <Tickets back={() => setScreen("home")} onBook={handleBook} />,
     hotels: <Hotels back={() => setScreen("home")} onBook={handleBook} onViewDetail={handleViewDetail} />,
     vehicles: <Vehicles back={() => setScreen("home")} onBook={handleBook} onViewDetail={handleViewDetail} />,
@@ -2239,13 +2403,47 @@ function TaamaApp() {
         contact={contactInfo}
         total={finalTotal}
         goHome={goHome}
+        pending={!(checkoutItem.mode === "taxi" && !checkoutItem.id)}
+        partnerName={checkoutItem.agency}
+        openBookings={() => setScreen("mybookings")}
       />
     ),
-    mybookings: <MyBookings back={() => setScreen("home")} bookings={bookings} />,
+    mybookings: <MyBookings back={() => setScreen("home")} bookings={bookings} onReceipt={openReceipt} />,
+    receipt: receipt && (
+      <Confirmation
+        item={receipt.item}
+        reference={receipt.reference}
+        passenger={receipt.passenger}
+        contact={receipt.contact}
+        total={receipt.total}
+        partnerName={receipt.partnerName}
+        goHome={() => setScreen("mybookings")}
+        backLabel="Retour à mes réservations"
+      />
+    ),
   };
   return (
     <div className="min-h-screen w-full flex justify-center" style={{ background: "#0B1526" }}>
       <div className="w-full max-w-[480px] min-h-screen" style={{ background: "#13223D", color: "#F0ECE1" }}>
+        {notice && token && (
+          <div
+            onClick={() => {
+              const b = bookings.find((x) => x.reference === notice.reference);
+              if (notice.status === "Confirmé" && b) openReceipt(b); else { setNotice(null); setScreen("mybookings"); }
+            }}
+            style={{ position: "fixed", top: 12, left: "50%", transform: "translateX(-50%)", width: "calc(100% - 24px)", maxWidth: 456, zIndex: 9000,
+              background: notice.status === "Confirmé" ? "#1F4D36" : "#5A1F18", border: "1px solid " + (notice.status === "Confirmé" ? "#3D6B4F" : "#A63D2F"),
+              borderRadius: 14, padding: "12px 14px", boxShadow: "0 10px 30px rgba(0,0,0,.4)", cursor: "pointer", color: "#fff", fontSize: 13 }}
+          >
+            <div style={{ display: "flex", justifyContent: "space-between", gap: 8 }}>
+              <b>{notice.status === "Confirmé" ? "✅ Réservation validée !" : "❌ Réservation refusée"}</b>
+              <span onClick={(e) => { e.stopPropagation(); setNotice(null); }} style={{ opacity: .7, fontSize: 18, lineHeight: 1 }}>×</span>
+            </div>
+            <div style={{ opacity: .9, marginTop: 2 }}>
+              {notice.title} · {notice.reference} — {notice.status === "Confirmé" ? "touchez pour voir votre reçu" : "touchez pour voir le détail"}
+            </div>
+          </div>
+        )}
         {screens[screen]}
       </div>
     </div>
