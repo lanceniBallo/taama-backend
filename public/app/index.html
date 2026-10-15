@@ -414,132 +414,160 @@ function Login({ onLoggedIn }) {
 }
 
 function Home({ go, bookings, onLogout, onReceipt }) {
-  return (
-    <div className="pb-8">
-      {/* En-tête + onglets */}
-      <div className="px-5 pt-6 pb-4 flex items-center justify-between">
-        <div className="flex items-baseline gap-0.5">
-          <span style={{ fontFamily: "'Fraunces', serif", fontWeight: 700, fontSize: 22, color: "#FFFFFF" }}>Taama</span>
-          <span style={{ fontFamily: "'Fraunces', serif", fontWeight: 700, fontSize: 22, color: "#C08A3E" }}>.</span>
-        </div>
-        <div className="flex gap-3 text-[11px] font-medium whitespace-nowrap" style={{ color: "#FFFFFFcc" }}>
-          <button onClick={() => go("tickets")} className="active:opacity-60">Billets</button>
-          <button onClick={() => go("vehicles")} className="active:opacity-60">Location auto</button>
-          <button onClick={() => go("hotels")} className="active:opacity-60">Hôtels</button>
-        </div>
-      </div>
-
-      {/* Bannière hero */}
-      <div className="px-5">
-        <Photo
-          src="https://images.unsplash.com/photo-1436491865332-7a61a109cc05?auto=format&fit=crop&w=900&q=70"
-          fallbackColor="#1B2A4A"
-          className="rounded-2xl h-40"
-        >
-          <div className="h-full flex flex-col justify-end p-5">
-            <div className="text-white text-2xl leading-tight" style={{ fontFamily: "'Fraunces', serif", fontWeight: 600 }}>
-              Réservez vos<br />voyages
-            </div>
-            <div className="text-white/80 text-xs mt-1">Billets, hôtels, véhicules et assurance — en un geste</div>
-          </div>
-        </Photo>
-      </div>
-
-      {/* Offres spéciales */}
-      <div className="px-5 mt-7">
-        <div className="text-base mb-3" style={{ fontFamily: "'Fraunces', serif", fontWeight: 600, color: "#FFFFFF" }}>
-          Offres spéciales
-        </div>
-        <div className="grid grid-cols-2 gap-3">
-          <button onClick={() => go("tickets")} className="text-left">
-            <Photo
-              src="https://images.unsplash.com/photo-1544620347-c4fd4a3d5957?auto=format&fit=crop&w=500&q=70"
-              fallbackColor="#C08A3E"
-              className="rounded-xl h-24"
-            >
-              <div className="h-full flex items-end p-3">
-                <span className="text-white text-[11px] font-medium">Bus interurbain</span>
-              </div>
-            </Photo>
-            <div className="text-xs mt-1.5" style={{ color: "#FFFFFFb3" }}>
-              À partir de <span style={{ color: "#C08A3E", fontFamily: "'IBM Plex Mono', monospace" }}>11 000 FCFA</span>
-            </div>
-          </button>
-          <button onClick={() => go("hotels")} className="text-left">
-            <Photo
-              src="https://images.unsplash.com/photo-1611892440504-42a792e24d32?auto=format&fit=crop&w=500&q=70"
-              fallbackColor="#3D6B4F"
-              className="rounded-xl h-24"
-            >
-              <div className="h-full flex items-end p-3">
-                <span className="text-white text-[11px] font-medium">Chambres d'hôtel</span>
-              </div>
-            </Photo>
-            <div className="text-xs mt-1.5" style={{ color: "#FFFFFFb3" }}>
-              À partir de <span style={{ color: "#3D6B4F", fontFamily: "'IBM Plex Mono', monospace" }}>45 000 FCFA</span>
-            </div>
-          </button>
-        </div>
-      </div>
-
-      {/* Nos services */}
-      <div className="px-5 mt-7">
-        <div className="text-base mb-3" style={{ fontFamily: "'Fraunces', serif", fontWeight: 600, color: "#FFFFFF" }}>
-          Nos services
-        </div>
-        <div className="grid grid-cols-2 gap-3">
-          <ServiceTile emoji={["✈️", "🚌"]} label="Billets" color="#C08A3E" onClick={() => go("tickets")} />
-          <ServiceTile emoji="🚕" label="Taxi" color="#B5722E" onClick={() => go("taxi")} />
-          <ServiceTile emoji="🚗" label="Location de voiture" color="#1B2A4A" onClick={() => go("vehicles")} />
-          <ServiceTile emoji="🏨" label="Hôtels" color="#3D6B4F" onClick={() => go("hotels")} />
-          <ServiceTile emoji="🛡️" label="Assurance auto" color="#A63D2F" onClick={() => go("insurance")} />
-        </div>
-      </div>
-
-      {/* Réservation récente */}
-      <div className="px-5 mt-7">
-        <div className="flex items-center justify-between mb-3">
-          <div className="text-xs uppercase tracking-wide" style={{ color: "#FFFFFF99" }}>Mes réservations récentes</div>
-          <button onClick={() => go("mybookings")} className="text-xs font-medium" style={{ color: "#FFFFFF" }}>
-            Voir tout →
-          </button>
-        </div>
-        <div className="flex flex-col gap-2">
-          {bookings.slice(0, 3).map((b, i) => (
-            <BookingRow key={b.reference || i} b={b} onReceipt={onReceipt} />
-          ))}
-        </div>
-      </div>
-
-      {/* Contact */}
-      <div className="px-5 mt-7">
-        <div className="text-base mb-3" style={{ fontFamily: "'Fraunces', serif", fontWeight: 600, color: "#FFFFFF" }}>
-          Contact
-        </div>
-        <div className="bg-white rounded-xl p-4 border border-black/5 flex flex-col gap-2.5 text-sm">
-          <div className="flex items-center gap-2" style={{ color: "#1B2A4A" }}>
-            <span>📞</span> +223 70 00 00 00
-          </div>
-          <div className="flex items-center gap-2" style={{ color: "#1B2A4A" }}>
-            <span>✉️</span> contact@taama.ml
-          </div>
-          <div className="flex items-center gap-2" style={{ color: "#1B2A4A" }}>
-            <span>📍</span> ACI 2000, Bamako, Mali
-          </div>
-        </div>
-      </div>
-
-      {/* Déconnexion */}
-      <div className="px-5 mt-5">
-        <button
-          onClick={onLogout}
-          className="w-full text-sm font-medium py-3 rounded-xl border"
-          style={{ borderColor: "#00000015", color: "#A63D2F", background: "#fff" }}
-        >
-          Se déconnecter
-        </button>
-      </div>
+  const SERVICES = [
+    { emoji: "✈️", label: "Billets", sub: "Bus & avion", color: "#C08A3E", to: "tickets" },
+    { emoji: "🚕", label: "Taxi", sub: "Voiture & moto", color: "#B5722E", to: "taxi" },
+    { emoji: "🚗", label: "Location", sub: "Avec ou sans chauffeur", color: "#5B7DB1", to: "vehicles" },
+    { emoji: "🏨", label: "Hôtels", sub: "Hôtels & appartements", color: "#3D8B5F", to: "hotels" },
+    { emoji: "🛡️", label: "Assurance", sub: "Assurance auto", color: "#C0504D", to: "insurance" },
+    { emoji: "📋", label: "Réservations", sub: "Suivi & reçus", color: "#8A6FC7", to: "mybookings" },
+  ];
+  const OFFERS = [
+    { title: "Bus interurbain", price: "11 000 FCFA", to: "tickets", color: "#C08A3E", img: "https://images.unsplash.com/photo-1544620347-c4fd4a3d5957?auto=format&fit=crop&w=700&q=70" },
+    { title: "Chambres d'hôtel", price: "45 000 FCFA", to: "hotels", color: "#3D6B4F", img: "https://images.unsplash.com/photo-1611892440504-42a792e24d32?auto=format&fit=crop&w=700&q=70" },
+    { title: "Location de voiture", price: "25 000 FCFA", to: "vehicles", color: "#1B2A4A", img: "https://images.unsplash.com/photo-1549317661-bd32c8ce0db2?auto=format&fit=crop&w=700&q=70" },
+    { title: "Vols régionaux", price: "95 000 FCFA", to: "tickets", color: "#1B2A4A", img: "https://images.unsplash.com/photo-1436491865332-7a61a109cc05?auto=format&fit=crop&w=700&q=70" },
+  ];
+  const Logo = ({ size }) => (
+    <div className="flex items-baseline gap-0.5">
+      <span style={{ fontFamily: "'Fraunces', serif", fontWeight: 700, fontSize: size, color: "#FFFFFF" }}>Taama</span>
+      <span style={{ fontFamily: "'Fraunces', serif", fontWeight: 700, fontSize: size, color: "#C08A3E" }}>.</span>
     </div>
+  );
+  const OfferCard = ({ o, h }) => (
+    <button onClick={() => go(o.to)} className="text-left w-full">
+      <Photo src={o.img} fallbackColor={o.color} className={"rounded-xl " + h}>
+        <div className="h-full flex items-end p-3">
+          <span className="text-white text-xs font-semibold">{o.title}</span>
+        </div>
+      </Photo>
+      <div className="text-xs mt-1.5" style={{ color: "#FFFFFFb3" }}>
+        À partir de <span style={{ color: "#E8CD7A", fontFamily: "'IBM Plex Mono', monospace" }}>{o.price}</span>
+      </div>
+    </button>
+  );
+  const contact = (
+    <>
+      <span className="flex items-center gap-2"><span>📞</span> +223 70 00 00 00</span>
+      <span className="flex items-center gap-2"><span>✉️</span> contact@taama.ml</span>
+      <span className="flex items-center gap-2"><span>📍</span> ACI 2000, Bamako, Mali</span>
+    </>
+  );
+
+  return (
+    <>
+      {/* ===================== TÉLÉPHONE ===================== */}
+      <div className="lg:hidden pb-8">
+        <div className="px-5 pb-3 flex items-center justify-between" style={{ paddingTop: "max(20px, env(safe-area-inset-top))" }}>
+          <Logo size={24} />
+          <button onClick={() => go("mybookings")} className="flex items-center gap-1.5 text-xs font-medium px-3 py-2 rounded-full"
+            style={{ background: "#FFFFFF14", color: "#FFFFFF" }}>
+            📋 Mes réservations
+          </button>
+        </div>
+
+        <div className="px-5">
+          <Photo src="https://images.unsplash.com/photo-1436491865332-7a61a109cc05?auto=format&fit=crop&w=900&q=70" fallbackColor="#1B2A4A" className="rounded-2xl h-36">
+            <div className="h-full flex flex-col justify-end p-4">
+              <div className="text-white text-xl leading-tight" style={{ fontFamily: "'Fraunces', serif", fontWeight: 600 }}>Réservez vos voyages</div>
+              <div className="text-white/80 text-xs mt-1">Billets, taxi, hôtels, véhicules et assurance</div>
+            </div>
+          </Photo>
+        </div>
+
+        <div className="px-5 mt-6">
+          <div className="text-base mb-3" style={{ fontFamily: "'Fraunces', serif", fontWeight: 600, color: "#FFFFFF" }}>Nos services</div>
+          <div className="grid grid-cols-3 gap-2.5">
+            {SERVICES.map((sv) => (
+              <button key={sv.label} onClick={() => go(sv.to)}
+                className="bg-white rounded-xl py-3.5 px-1 flex flex-col items-center gap-1.5 active:scale-[0.97] transition-transform">
+                <div className="w-11 h-11 rounded-xl flex items-center justify-center text-xl" style={{ background: sv.color + "1f" }}>{sv.emoji}</div>
+                <span className="text-[12px] font-semibold leading-tight text-center" style={{ color: "#1B2A4A" }}>{sv.label}</span>
+              </button>
+            ))}
+          </div>
+        </div>
+
+        <div className="px-5 mt-7">
+          <div className="text-base mb-3" style={{ fontFamily: "'Fraunces', serif", fontWeight: 600, color: "#FFFFFF" }}>Offres spéciales</div>
+          <div className="grid grid-cols-2 gap-3">
+            {OFFERS.slice(0, 2).map((o) => <OfferCard key={o.title} o={o} h="h-24" />)}
+          </div>
+        </div>
+
+        <div className="px-5 mt-7">
+          <div className="text-base mb-3" style={{ fontFamily: "'Fraunces', serif", fontWeight: 600, color: "#FFFFFF" }}>Contact</div>
+          <div className="bg-white rounded-xl p-4 flex flex-col gap-2.5 text-sm" style={{ color: "#1B2A4A" }}>{contact}</div>
+        </div>
+
+        <div className="px-5 mt-5">
+          <button onClick={onLogout} className="w-full text-sm font-medium py-3 rounded-xl" style={{ color: "#E08A7E", background: "#FFFFFF0d" }}>
+            Se déconnecter
+          </button>
+        </div>
+      </div>
+
+      {/* ===================== ORDINATEUR ===================== */}
+      <div className="hidden lg:block min-h-screen">
+        <header className="sticky top-0 z-20" style={{ background: "#0F1B31ee", backdropFilter: "blur(8px)", borderBottom: "1px solid #FFFFFF14" }}>
+          <div className="max-w-6xl mx-auto px-8 h-16 flex items-center gap-8">
+            <Logo size={26} />
+            <nav className="flex items-center gap-6 text-sm" style={{ color: "#FFFFFFcc" }}>
+              {SERVICES.slice(0, 5).map((sv) => (
+                <button key={sv.label} onClick={() => go(sv.to)} className="hover:text-white transition-colors">{sv.label}</button>
+              ))}
+            </nav>
+            <div className="ml-auto flex items-center gap-3">
+              <button onClick={() => go("mybookings")} className="text-sm font-medium px-4 py-2 rounded-full" style={{ background: "#C08A3E", color: "#fff" }}>📋 Mes réservations</button>
+              <button onClick={onLogout} className="text-sm px-3 py-2 rounded-full" style={{ color: "#E08A7E" }}>Se déconnecter</button>
+            </div>
+          </div>
+        </header>
+
+        <section className="max-w-6xl mx-auto px-8 pt-8">
+          <Photo src="https://images.unsplash.com/photo-1436491865332-7a61a109cc05?auto=format&fit=crop&w=1800&q=70" fallbackColor="#1B2A4A" className="rounded-3xl h-[340px]">
+            <div className="h-full flex flex-col justify-end p-12" style={{ background: "linear-gradient(90deg, rgba(10,31,61,.85) 0%, rgba(10,31,61,.2) 70%)" }}>
+              <div className="text-white text-5xl leading-tight max-w-xl" style={{ fontFamily: "'Fraunces', serif", fontWeight: 600 }}>Réservez vos voyages au Mali, en quelques clics</div>
+              <div className="text-white/80 text-base mt-3">Billets de bus et d'avion, taxi, hôtels, location de véhicules et assurance auto.</div>
+              <div className="flex gap-3 mt-6">
+                <button onClick={() => go("tickets")} className="px-6 py-3 rounded-full text-sm font-semibold" style={{ background: "#C08A3E", color: "#fff" }}>Réserver un billet</button>
+                <button onClick={() => go("hotels")} className="px-6 py-3 rounded-full text-sm font-semibold" style={{ background: "#FFFFFF", color: "#1B2A4A" }}>Trouver un hôtel</button>
+              </div>
+            </div>
+          </Photo>
+        </section>
+
+        <section className="max-w-6xl mx-auto px-8 mt-12">
+          <div className="text-2xl mb-5" style={{ fontFamily: "'Fraunces', serif", fontWeight: 600, color: "#FFFFFF" }}>Nos services</div>
+          <div className="grid grid-cols-6 gap-4">
+            {SERVICES.map((sv) => (
+              <button key={sv.label} onClick={() => go(sv.to)}
+                className="bg-white rounded-2xl p-5 flex flex-col items-start gap-3 text-left hover:-translate-y-0.5 hover:shadow-xl transition-all">
+                <div className="w-12 h-12 rounded-xl flex items-center justify-center text-2xl" style={{ background: sv.color + "1f" }}>{sv.emoji}</div>
+                <div>
+                  <div className="text-sm font-semibold" style={{ color: "#1B2A4A" }}>{sv.label}</div>
+                  <div className="text-xs mt-0.5" style={{ color: "#1B2A4A99" }}>{sv.sub}</div>
+                </div>
+              </button>
+            ))}
+          </div>
+        </section>
+
+        <section className="max-w-6xl mx-auto px-8 mt-12">
+          <div className="text-2xl mb-5" style={{ fontFamily: "'Fraunces', serif", fontWeight: 600, color: "#FFFFFF" }}>Offres spéciales</div>
+          <div className="grid grid-cols-4 gap-5">
+            {OFFERS.map((o) => <OfferCard key={o.title} o={o} h="h-44" />)}
+          </div>
+        </section>
+
+        <footer className="mt-16" style={{ borderTop: "1px solid #FFFFFF14" }}>
+          <div className="max-w-6xl mx-auto px-8 py-8 flex items-center justify-between text-sm" style={{ color: "#FFFFFFb3" }}>
+            <Logo size={20} />
+            <div className="flex gap-8">{contact}</div>
+          </div>
+        </footer>
+      </div>
+    </>
   );
 }
 
@@ -564,7 +592,7 @@ function Tickets({ back, onBook }) {
   const [mode, setMode] = useState("bus");
   const [from, setFrom] = useState("Bamako");
   const [to, setTo] = useState("Sikasso");
-  const [date, setDate] = useState("2026-08-02");
+  const [date, setDate] = useState(() => new Date().toISOString().slice(0, 10));
   const [returnDate, setReturnDate] = useState("2026-08-09");
   const [tripType, setTripType] = useState("aller");
   const [passengers, setPassengers] = useState(1);
@@ -2442,7 +2470,7 @@ function TaamaApp() {
   };
   return (
     <div className="min-h-screen w-full flex justify-center" style={{ background: "#0B1526" }}>
-      <div className="w-full max-w-[480px] min-h-screen" style={{ background: "#13223D", color: "#F0ECE1" }}>
+      <div className={"w-full min-h-screen " + (screen === "home" ? "max-w-[480px] lg:max-w-none" : "max-w-[480px] lg:max-w-[560px] lg:my-6 lg:rounded-3xl lg:overflow-hidden lg:shadow-2xl")} style={{ background: "#13223D", color: "#F0ECE1" }}>
         {notice && token && (
           <div
             onClick={() => {
