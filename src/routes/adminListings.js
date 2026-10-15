@@ -78,4 +78,30 @@ router.patch("/listings/:id/reject", requireAdmin, async (req, res) => {
   }
 });
 
+// ==========================================
+// DELETE /admin/listings/:id
+// Supprime une offre. Si des clients l'ont déjà réservée, elle est seulement
+// masquée (les réservations et la comptabilité doivent rester intactes).
+// ==========================================
+router.delete("/listings/:id", requireAdmin, async (req, res) => {
+  try {
+    const used = await pool.query("SELECT COUNT(*)::int AS n FROM bookings WHERE listing_id = $1", [req.params.id]);
+    if (used.rows[0].n > 0) {
+      const { rows } = await pool.query(
+        "UPDATE listings SET is_active = FALSE, status = 'rejetee', rejection_reason = 'Annulée par l''administrateur' WHERE id = $1 RETURNING id",
+        [req.params.id]);
+      if (!rows[0]) return res.status(404).json({ success: false, error: "Offre introuvable" });
+      adminEvents.emit("listing", { id: req.params.id, status: "rejetee" });
+      return res.json({ success: true, deleted: false, hidden: true, bookings: used.rows[0].n });
+    }
+    const { rowCount } = await pool.query("DELETE FROM listings WHERE id = $1", [req.params.id]);
+    if (!rowCount) return res.status(404).json({ success: false, error: "Offre introuvable" });
+    adminEvents.emit("listing", { id: req.params.id, status: "supprimee" });
+    res.json({ success: true, deleted: true });
+  } catch (error) {
+    console.error("Erreur DELETE /admin/listings/:id :", error.message);
+    res.status(500).json({ success: false, error: "Impossible de supprimer l'offre" });
+  }
+});
+
 module.exports = router;
